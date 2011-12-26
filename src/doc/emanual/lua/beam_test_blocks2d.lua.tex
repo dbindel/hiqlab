@@ -1,0 +1,9 @@
+-- Element order, Node density
+order  =  1
+dense_x=  2.5
+dense_y=  1
+
+-- Define coordinates, element connectivity, and addition of
+-- nodes and elements to the simultaneously, using the
+-- blocks2d command
+mesh:blocks2d({0, beam_l},{0, beam_w}, etype, order, dense_x, dense_y)

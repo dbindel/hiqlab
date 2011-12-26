@@ -1,0 +1,17 @@
+% HiQLab
+% Copyright (c): Regents of the University of California
+
+$#include "mex.h"
+$#include "hiqlab.h"
+
+$[
+void print_hiqlab_banner()
+{
+    mexPrintf("%s", HIQ_MESSAGE);
+}
+$]
+
+@function print_hiqlab_banner();
+% Print a banner with HiQLab version information.
+# print_hiqlab_banner();
+

@@ -1,0 +1,4 @@
+/*
+ * Copyright (c) 2007  David Bindel
+ * See the file COPYING for copying permissions
+ */

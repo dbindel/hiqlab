@@ -1,0 +1,18 @@
+Types can be for input, output, inout, or return.
+Everything is okay for input.
+
+Basic types:
+ - Objects (return)
+ - Numeric arrays (inout, output, return)
+ - Numeric scalars (return)
+ - Strings (inout, output, return)
+ - mxArrays (return, output)
+
+Pointer types:
+ - To objects (return)
+ - To numeric scalars (inout, output, return)
+
+Reference types:
+ - To objects (return)
+ - To numeric scalars (inout, output, return)
+

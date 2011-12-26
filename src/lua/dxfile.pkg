@@ -1,0 +1,24 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "dxfile.h"
+
+class DXFile {
+    DXFile(const char* name);
+    ~DXFile();
+
+    void start_field(const char* name = NULL);
+    void field_component(const char* name, int id);
+    void end_field();
+    void start_array(int m, int n, float* A);
+    void start_array(int m, int n, double* A);
+    void start_array(int m, int n, int* A);
+    void write(float x);
+    void write(double x);
+    void write(int x);
+    void array_attribute(const char* key, const char* value);
+    void end_array();
+    void writemesh(Mesh* mesh);
+};
+

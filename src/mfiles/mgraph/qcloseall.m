@@ -1,0 +1,3 @@
+function qcloseall()
+
+close all;

@@ -1,0 +1,10 @@
+#!/bin/sh
+configure CC=mpicc CXX=mpicxx CFLAGS='-fPIC -g -O2' FFLAGS='-fPIC -g -O2' CXXFLAGS='-fPIC -g -O2' \
+--with-blas=/usr/local/amd/acml/3.5.0/gnu64/lib/libacml.a \
+--with-lapack=/usr/local/amd/acml/3.5.0/gnu64/lib/libacml.a \
+--with-f90hiqlab=gfortran \
+--with-f90libshiqlab='/usr/lib/gcc/x86_64-redhat-linux/4.1.2/libgfortran.a /usr/lib/gcc/x86_64-redhat-linux/4.1.2/libgfortranbegin.a' \
+--with-metis=/usr/local/parmetis/3.1/libmetis.a \
+--with-parmetis=/usr/local/parmetis/3.1/libparmetis.a \
+--with-petsc=/usr/local/petsc/2.3.3-p8 \
+--with-petscarch=linux_mpi1_cxx_ds_complex_ndb

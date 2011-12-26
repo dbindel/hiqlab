@@ -1,0 +1,47 @@
+object 1 class array type float
+rank 1 shape 3 items 64
+lsb binary data file block3d.bin,0
+attribute "dep" string "positions"
+#
+#
+object 2 class array type int
+rank 1 shape 8 items 27
+lsb binary data file block3d.bin,768
+attribute "element type" string "cubes"
+attribute "ref" string "positions"
+#
+#
+object 3 class array type float
+rank 1 shape 3 items 64
+lsb binary data file block3d.bin,1632
+attribute "dep" string "positions"
+#
+#
+object 4 class array type float
+rank 0 items 64
+lsb binary data file block3d.bin,2400
+attribute "dep" string "positions"
+#
+#
+object 5 class array type float
+rank 0 items 64
+lsb binary data file block3d.bin,2656
+attribute "dep" string "positions"
+#
+#
+object 6 class array type float
+rank 0 items 64
+lsb binary data file block3d.bin,2912
+attribute "dep" string "positions"
+#
+#
+object "mesh" class field
+component "positions" value 1
+component "connections" value 2
+component "displacements" value 3
+component "field0" value 4
+component "field1" value 5
+component "field2" value 6
+#
+#
+end

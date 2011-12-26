@@ -1,0 +1,23 @@
+$[
+
+-- Define a formatted print function
+function printf(...)
+  print(string.format(unpack(arg)))
+end
+
+-- Import the math library into the global name space
+table.foreach(math,
+function(k,v)
+  _G[k] = v
+end)
+
+-- Add to the Lua path
+function addpath(p)
+  if LUA_PATH then
+    LUA_PATH = p .. ';' .. LUA_PATH
+  else
+    LUA_PATH = p
+  end
+end
+
+$]

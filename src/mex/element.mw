@@ -1,0 +1,115 @@
+% HiQLab
+% Copyright (c): Regents of the University of California
+
+$[
+#include "element.h"
+#include "pmlelement.h"
+#include "pmlscalar1d.h"
+#include "pmlscalar2d.h"
+#include "pmlscalar3d.h"
+#include "pmlscalarax.h"
+#include "pmlelastic2d.h"
+#include "pmlelastic3d.h"
+#include "pmlelasticax.h"
+#include "pmlelastic2d_te.h"
+#include "pmlelasticax_te.h"
+#include "pmlelastic3d_te.h"
+#include "pmlelastic2d_pz.h"
+#include "pmlelastic2hd_pz.h"
+#include "pmlelastic3d_pz.h"
+$]
+
+# class PMLElement : Element;
+# class PMLScalar1d : PMLElement, Element;
+# class PMLScalar2d : PMLElement, Element;
+# class PMLScalar3d : PMLElement, Element;
+# class PMLScalarAxis : PMLElement, Element;
+# class PMLElastic2d : PMLElement, Element;
+# class PMLElastic3d : PMLElement, Element;
+# class PMLElasticAxis : PMLElement, Element;
+
+
+@function Element_delete(o)
+# delete(Element* o);
+
+
+@function PMLElement_set_stretch(o, stretch)
+% Set the PML stretching function.  The stretch array is an
+% ndm-by-numelt array of real numbers.  The preferred method for
+% setting the stretch array is to define a Lua stretch function.
+
+% FIXME: Check stretch array size
+[ndm,nelt] = size(stretch);
+# o->PMLElement.set_stretch(double[ndm,nelt] stretch);
+
+
+@function o = PMLScalar1d_new(kappa, rho)
+% Create a new element to solve the wave equation
+%   rho*u_tt = kappa u_xx
+% in one dimension, where u is a scalar quantity
+%
+# PMLScalar1d* o = new PMLScalar1d(double kappa, double rho);
+
+
+@function o = PMLScalar2d_new(kappa, rho)
+% Create a new element to solve the wave equation
+%   rho*u_tt = kappa (u_xx + u_yy)
+% in two dimensions, where u is a scalar quantity
+%
+# PMLScalar2d* o = new PMLScalar2d(double kappa, double rho);
+
+
+@function o = PMLScalar3d_new(kappa, rho)
+% Create a new element to solve the wave equation
+%   rho*u_tt = kappa (u_xx + u_yy + u_zz)
+% in three dimensions, where u is a scalar quantity
+%
+# PMLScalar3d* o = new PMLScalar3d(double kappa, double rho);
+
+
+@function o = PMLScalarAxis_new(kappa, rho)
+% Create a new element to solve the wave equation
+%   rho*u_tt = kappa (u_xx + u_yy + u_zz)
+% in an axisymmetric setting, where u is a scalar quantity
+%
+# PMLScalarAxis* o = new PMLScalarAxis(double kappa, double rho);
+
+
+@function o = PMLElastic2d_new(E, nu, rho, plane_type)
+% Create a new element to solve the elasticity equation.
+% Inputs:
+%  E   - Young's modulus
+%  nu  - Poisson ratio
+%  rho - mass density
+%  plane_type - 0 for plane strain, 1 for plane stress
+%
+# PMLElastic2d* o = new PMLElastic2d(double E, double nu, double rho,
+#                                    int plane_type);
+
+
+@function o = PMLElastic3d_new(E, nu, rho)
+% Create a new element to solve the elasticity equation.
+% Inputs:
+%  E   - Young's modulus
+%  nu  - Poisson ratio
+%  rho - mass density
+%
+# PMLElastic3d* o = new PMLElastic3d(double E, double nu, double rho);
+
+
+@function o = PMLElasticAxis_new(E, nu, rho)
+% Create a new element to solve the elasticity equation.
+% Inputs:
+%  E   - Young's modulus
+%  nu  - Poisson ratio
+%  rho - mass density
+%
+# PMLElasticAxis* o = new PMLElasticAxis(double E, double nu, double rho);
+
+
+@function o = NullElement
+% Generate an Element corresponding to NULL.  Do not use this
+% function unless you *really* know what you're doing!
+%
+$ Element* NullElement() { return NULL; }
+# Element* o = NullElement();

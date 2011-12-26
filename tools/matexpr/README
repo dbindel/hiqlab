@@ -1,0 +1,13 @@
+matexpr-0.17
+(http://www.cims.nyu.edu/~dbindel/matexpr/)
+
+matexpr is a source-to-source translator for embedding simple MATLAB-like
+matrix expressions in C/C++.  matexpr interprets special comments in a source
+file and uses them to generate ordinary C code.
+
+To compile, edit make.inc and then run make.  The output will be a standalone
+executable (matexpr) in the main directory.
+
+The user's guide (matexpr.pdf) describes matexpr in more detail; you can also
+look at the example subdirectory to get some idea of how matexpr is used.
+

@@ -1,0 +1,18 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "qassembly.h"
+
+class QVecAssembler : public QAssembler {
+    ~QVecAssembler();
+    void add(int i, double eltr, double elti = 0);
+    void set(int i, double eltr, double elti = 0);
+};
+
+class QBCAssembler : public QAssembler {
+    QBCAssembler(Mesh* mesh, const char* type);
+    ~QBCAssembler();
+    void add(int i, double eltr, double elti = 0);
+    void set(int i, double eltr, double elti = 0);
+};

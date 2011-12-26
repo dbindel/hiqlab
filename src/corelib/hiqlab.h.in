@@ -1,0 +1,23 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ *
+ */
+
+#ifndef HIQLAB_H 
+#define HIQLAB_H 
+
+/* HAS_LAPACK   */
+/* HAS_SUPERLU  */
+/* HAS_X11      */
+/* HAS_FLTK     */
+/* HAS_XDR      */
+/* HAS_READLINE */
+
+#define HIQ_MESSAGE \
+  "@PACKAGE_STRING@\n" \
+  "Copyright   : Regents of the University of California\n" \
+  "Build system: @HIQ_HOST@\n" \
+  "Build date  : @HIQ_DATE@\n" \
+  "Bug reports : @PACKAGE_BUGREPORT@\n"
+
+#endif /* HIQLAB_H */

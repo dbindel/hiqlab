@@ -1,0 +1,123 @@
+1. Installation
+
+If you are using a *pre-compiled* version of HiQLab, you can ignore
+the discussion in this section.
+
+HiQLab is designed to be built in a UNIX-like environment.  We have
+tested the build under Linux (various platforms), Cygwin, and Solaris;
+but most of the active development is done under Linux.  If there are
+bugs in the build system for other platforms, let us know.
+
+To build HiQLab from scratch, follow these steps:
+
+a) Make sure that UMFPACK, ARPACK, LAPACK, and the BLAS are all
+available on your system.  If you wish to build the MATLAB front-end,
+you will also need to have MATLAB installed.
+
+b) Run the configure script.  This script will automatically search
+for the libraries mentioned in (a), except for ARPACK.  If you have
+installed the libraries in a non-standard location, you can specify
+where the system should look by specifying options to configure, e.g.
+
+  ./configure --with-blas=/usr/local/lib/libmyfastblas.a \
+              --with-lapack=/usr/local/lib/LAPACK/liblapack_LINUX.a \
+              --with-umfpack=/usr/local/UMFPACK \
+              --with-arpack=/uar/local/lib/ARPACK/libarpack.a
+
+To see all the possible options used by configure, type
+
+  ./configure --help
+
+c) Type "make" in the top level directory.
+
+Note: MATLAB internally uses the Fortran support library libg2c.  For
+some combinations of system versions and MATLAB versions (particularly
+Fedora with MATLAB 7), the version of libg2c used by MATLAB is not
+completely compatible with the default version provided by the system.
+This incompatibility causes MATLAB to crash on exit.  If you see such
+symptoms, try changing the definition of MF77_LIBS in make.inc from
+its autoconf-generated value so that the statically linked version of
+the library (libg2c.a) is used.  For example,
+
+  MF77_LIBS   =  -L/usr/lib/gcc-lib/i386-redhat-linux/3.3.2 \
+                 -L/usr/lib/gcc-lib/i386-redhat-linux/3.3.2/../../.. \
+                 -lfrtbegin -lg2c -lm -lgcc_s
+
+becomes
+
+  MF77_LIBS   =  /usr/lib/gcc-lib/i386-redhat-linux/3.3.2/libg2c.a
+
+
+
+
+2. Running from MATLAB
+
+The file init.m in the HiQLab home directory performs all the tasks
+needed to set up system paths and to initialize HiQLab.  To run HiQLab
+analyses from MATLAB, type
+
+  >> run /my/hiqlab/dir/init.m
+
+from the MATLAB prompt; or, if you are in the HiQLab main directory,
+simply type
+
+  >> init.m
+
+If init runs successfully, it should print a diagnostic banner,
+something that looks like this:
+
+  HiQlab 0.2
+  Copyright   : Regents of the University of California
+  Build system: i686-pc-linux-gnu
+  Build date  : Mon Jun 27 18:32:45 PDT 2005
+  Bug reports : dbindel@cs.berkeley.edu
+
+
+
+
+3. Running the standalone code
+
+The standalone version of the code is located at
+
+  hiqlab/src/lua/hiqlab
+
+If you want to use the HiQLab standalone, we strongly recommend that
+you first set the HIQ_INIT environment variable to point to the file
+init.lua in your installation directory, e.g.
+
+  export HIQ_INIT = /home/dbindel/work/hiqlab/init.lua
+
+The file init.lua, like the file init.m, serves to set up path data
+for HiQLab.  You can also run init.lua explicitly when you start up
+HiQLab.
+
+In addition to the HIQ_INIT variable, HiQLab uses the HIQ_HISTORY
+variable to keep track of the location of a history file.  If you wish
+to use the up and down arrow keys to scroll through previous commands
+(including commands from previous sessions), you should set this
+variable.  For example
+
+  export HIQ_HISTORY = /home/dbindel/.hiqlab_history
+
+Once you have set the environment variables, you can run hiqlab with
+no arguments to start the interactive environment:
+
+  [dbindel@localhost hiqlab]$ hiqlab
+  -------------------------------------------------------
+  HiQlab 0.2
+  Copyright   : Regents of the University of California
+  Build system: i686-pc-linux-gnu
+  Build date  : Mon Jun 27 18:32:45 PDT 2005
+  Bug reports : dbindel@cs.berkeley.edu
+ 
+  Lua 5.0.2  Copyright (C) 1994-2004 Tecgraf, PUC-Rio
+  -------------------------------------------------------
+ 
+  >
+
+You can also run the standalone code in non-interactive mode by
+specifying a script at the command line, e.g.
+
+  [dbindel@localhost hiqlab]$ hiqlab hello.lua
+  Hello world
+

@@ -1,0 +1,68 @@
+\newpage
+\section{Basic analysis (Lua)}
+\subsection{Functions to obtain basic information about mesh}
+\begin{codelist}
+
+  \item[ndm = Mesh:get\_ndm()]
+  Return the dimension of the ambient space for the mesh.
+
+  \item[numnp = Mesh:numnp()]
+  Return the number of nodal points in the mesh.
+
+  \item[ndf = Mesh:get\_ndf()]
+  Return the number of degrees of freedom per node in the mesh.
+
+  \item[numid = Mesh:get\_numid()]
+  Return the total number of degrees of freedom in the mesh.
+
+  \item[numelt = Mesh:numelt()]
+  Return the number of elements in the mesh.
+
+  \item[nen = Mesh:get\_nen()]
+  Return the maximum number of nodes per element.
+
+  \item[numglobals = Mesh:numglobals()]
+  Return the number of global degrees of freedom in the mesh
+
+  \item[nbranch\_id = Mesh:nbranch\_id()]
+  Return the number of branch variables in the mesh
+
+\end{codelist}
+
+\subsection{Obtain particular information about ids}
+\begin{codelist}
+
+  \item[id = Mesh:id(mesh,i,j)]
+  Return the ith variable of node j
+
+  \item[id = Mesh:branchid(mesh,i,j)]
+  Return the ith variable of branch j
+
+  \item[id = Mesh:globalid(mesh,j)]
+  Return the id for jth global variable
+
+  \item[nbranch\_id = Mesh:nbranch\_id(mesh,j)]
+  Return the number of variables of branch j
+
+\end{codelist}
+
+
+
+
+
+%\begin{verbatim}
+%- plotmesh(mesh) to plot the mesh what boundary codes mean
+%-- F =-Mesh_assemble_R(mesh);
+%-- K = Mesh_assemble_k(mesh);
+%%-- U = K\F;
+%-- Mesh_set_u(mesh, U);
+%-- disp = Mesh_get_disp(mesh);
+%-- plotfield2d(mesh);
+%-- Mesh_delete(mesh);
+%-- Mesh_get_id(mesh);
+%-- How do you compute stresses???
+%\end{verbatim}
+%\subsection{Static analysis}
+%\subsection{Modal analysis}
+%\subsection{Time-harmonic analysis}
+%\subsection{Model reduction}

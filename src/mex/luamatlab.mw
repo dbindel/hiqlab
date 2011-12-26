@@ -1,0 +1,104 @@
+% HiQLab
+% Copyright (c): Regents of the University of California
+
+$#include "luamatlab.h"
+
+
+@function L = Lua_open()
+% Create a new Lua interpreter
+# lua_State* L = Lua_open();
+
+
+@function Lua_close(L);
+% Delete a Lua interpreter created by Lua_open.
+# lua_close(lua_State* L);
+
+
+@function status = Lua_dofile(L, fname)
+% Execute a file using the Lua interpreter L.
+# int status = Lua_dofile(lua_State* L, cstring fname);
+
+
+@function status = Lua_dostring(L, s);
+% Execute a string using the Lua interpreter L
+# int status = Lua_dostring(lua_State* L, cstring s);
+
+
+@function Lua_set_mesh(L, name, mesh)
+% Write a mesh variable into the Lua environment
+% Input:
+%  L    - the Lua interpreter object
+%  name - the name in Lua to which the mesh should be assigned
+%  mesh - the mesh object in MATLAB
+# Lua_set_mesh(lua_State* L, cstring name, Mesh* mesh);
+
+
+@function mesh = Lua_get_mesh(L, name);
+% Get a mesh variable out of the Lua environment
+% Input:
+%  L    - the Lua interpreter object
+%  name - the name in of the mesh object in Lua
+# Mesh* mesh = Lua_get_mesh(lua_State* L, cstring name);
+
+
+@function Lua_set_string(L, name, s);
+% Set a string variable in the Lua environment
+% Input:
+%  L    - the Lua interpreter object
+%  name - the name of the Lua variable
+%  s    - a string value
+# Lua_set_string(lua_State* L, cstring name, cstring s);
+
+
+@function s = Lua_get_string(L, name)
+% Get a string variable out of the Lua environment
+% Input:
+%  L    - the Lua interpreter object
+%  name - the name of the Lua variable
+# mxArray s = Lua_get_string(lua_State* L, cstring name);
+
+
+@function Lua_set_double(L, name, x)
+% Set a numeric variable in the Lua environment
+% Input:
+%  L    - the Lua interpreter object
+%  name - the name of the Lua variable
+%  x    - a number
+# Lua_set_double(lua_State* L, cstring name, double x);
+
+
+@function [x] = Lua_get_double(L, name)
+% [x] = Lua_get_double(L,name)
+% Get a numeric variable out of the Lua environment
+% Outputs:
+%  x  - the value of the Lua variable
+# double x = Lua_get_double(lua_State* L, cstring name);
+
+
+@function Lua_set_array(L, aname, array)
+% Lua_set_array(L,aname,array,a_type)
+% Set a matrix variable in the Lua environment
+% Input:
+%  L        - the Lua interpreter object
+%  aname    - the name of the matrix variable
+%  array    - a numeric array
+# Lua_set_array(lua_State* L, cstring aname, mxArray array);
+
+
+@function Lua_set_arrayz(L, aname, array)
+% Lua_set_arrayz(L,aname,array,a_type)
+% Set a matrix variable in the Lua environment
+% Input:
+%  L        - the Lua interpreter object
+%  aname    - the name of the matrix variable
+%  array    - a numeric array
+# Lua_set_arrayz(lua_State* L, cstring aname, mxArray array);
+
+
+@function result = Lua_get_array(L, name)
+% Get a matrix variable from the Lua environment
+% Input:
+%  L     - the Lua interpreter object
+%  name  - the name of the Lua variable
+# mxArray result = Lua_get_array(lua_State* L, cstring name);
+

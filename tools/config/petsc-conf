@@ -1,0 +1,18 @@
+PETSC_DIR=`pwd`; export PETSC_DIR
+PETSC_ARCH=hiqlab; export PETSC_ARCH
+config/configure.py --with-blas-lib=-lblas \
+--with-lapack-lib=-L/usr/local/lib64 -llapack \
+--with-clanguage=cxx \
+--with-mpi-shared=0 \
+--with-hypre=1 \
+--download-hypre=/home/dbindel/work/hiqlab/tools/hypre/hypre-1.11.1b.tar.gz \
+--with-prometheus=1 \
+--download-prometheus=/home/dbindel/work/hiqlab/tools/prometheus/Prometheus-1.8.5.tar.gz \
+--with-parmetis=1 \
+--with-parmetis-include=/home/dbindel/work/hiqlab/tools/ParMetis-3.1 \
+--with-parmetis-lib="[/home/dbindel/work/hiqlab/tools/ParMetis-3.1/libparmetis.a,/home/dbindel/work/hiqlab/tools/ParMetis-3.1/libmetis.a]"    \
+--LIBS=" -L/usr/lib/gcc/x86_64-redhat-linux/3.4.6 -L/usr/lib/gcc/x86_64-redhat-linux/3.4.6/../../../../lib64 -L/usr/lib/gcc/x86_64-redhat-linux/3.4.6/../../.. -L/lib/../lib64 -L/usr/lib/../lib64 -lfrtbegin -lg2c -lm -lgcc_s" \
+| tee configure_HIQLAB.log
+
+#--with-mpi-dir=/usr/local/mpich1/1.2.7p1/linux_shmem \
+#--with-mpirun=mpirun \

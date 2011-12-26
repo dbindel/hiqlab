@@ -1,0 +1,13 @@
+#!/bin/sh
+configure CC=mpicc CXX=mpicxx F77=mpif77 CFLAGS='-g -O2' CXXFLAGS='-g -O2' F77FLAGS='-g -O2' \
+--with-blas=/usr/local/amd/acml/3.5.0/gnu64/lib/libacml.a \
+--with-lapack=/usr/local/amd/acml/3.5.0/gnu64/lib/libacml.a \
+--with-mumps=/usr/local/mumps/4.6.4 \
+--with-blacs="/usr/local/mpiblacs/BLACS/LIB/libblacs.a /usr/local/mpiblacs/BLACS/LIB/libblacsF77init.a /usr/local/mpiblacs/BLACS/LIB/libblacs.a" \
+--with-scalapack=/usr/local/scalapack/1.7.5/libscalapack.a \
+--with-metis=/usr/local/parmetis/3.1/libmetis.a \
+--with-parmetis=/usr/local/parmetis/3.1/libparmetis.a \
+--with-trilinos=/usr/local/trilinos/7.0.5 \
+--with-trilinoslibdir=/usr/local/trilinos/7.0.5/linux_mpi1_gnu \
+--with-f90libshiqlab="/usr/lib/gcc/x86_64-redhat-linux/4.1.0/libgfortran.a /usr/lib/gcc/x86_64-redhat-linux/4.1.0/libgfortranbegin.a" \
+--with-f90hiqlab=gfortran

@@ -1,0 +1,553 @@
+% HiQLab
+% Copyright (c): Regents of the University of California
+
+$[
+#include "mexutil.h"
+#include "mesh.h"
+#include "meshstubs.h"
+#include "pzlinear.h"
+$]
+
+// ------------------------------------------------------------------
+@function [mesh,L] = Mesh_load(fname, p)
+% [mesh,L] = Mesh_load(name, param)
+% Load a mesh from a file.
+% Inputs:
+%  name  - the name of a Lua input file
+%  param - optional structure containing fields to be transferred to Lua
+%          e.g. param.p = 1 --> p = 1 in the Lua environment
+% Outputs:
+%  mesh  - the mesh object
+%  L     - the associated Lua interpreter
+
+% -- Open a new Lua environment and set the mesh var
+L = Lua_open;
+
+% -- Set the LUA_PATH environment variable
+qp = hiqpath;
+if ~isempty(qp)
+  Lua_set_string(L, 'LUA_PATH', qp);
+end
+
+% -- Copy parameters into Lua
+if nargin < 2, p = []; end
+if ~isempty(p)
+  pnames = fieldnames(p);
+  for i = 1:length(pnames)
+    pval = getfield(p, pnames{i});
+    if isa(pval, 'char')
+        Lua_set_string(L, pnames{i}, pval);
+    elseif isa(pval, 'double') & prod(size(pval)) == 1
+        Lua_set_double(L, pnames{i}, pval);
+    elseif isa(pval, 'double')
+        Lua_set_array(L, pnames{i}, pval);
+    else
+        Lua_close(L);
+        error(sprintf('Cannot put %s into Lua', pnames{i}));
+    end
+  end
+end
+
+% -- Run the file
+if Lua_dofile(L, fname) ~= 0
+  Lua_close(L);
+  error('Error loading from Lua.');
+end
+mesh = Lua_get_mesh(L, 'mesh');
+if ~ischar(mesh)
+  Lua_close(L);
+  error('Error loading from Lua.');
+end
+# mesh->Mesh.own(lua_State* L);
+# mesh->Mesh.initialize();
+
+
+@function Mesh_delete(m)
+# delete(Mesh* m);
+
+
+// ------------------------------------------------------------------
+@function s = Mesh_get_scale(m, name)
+% Get a characteristic scale described by the given name.
+# double s = m->Mesh.get_scale(cstring name);
+
+
+@function x = Mesh_x(m,i,j)
+% x = Mesh_x(THIS,i,j)
+% Return the ith coordinate of node j.
+% Inputs:
+%  i  - coordinate index
+%  j  - node number
+
+if i < 1 | i > Mesh_get_ndm(m), error('Bad coordinate number'); end
+if j < 1 | j > Mesh_numnp(m),   error('Bad node number');       end
+i = i-1;
+j = j-1;
+# double x = m->Mesh.x(int i, int j);
+
+
+@function ix = Mesh_ix(m,i,j)
+% ix = Mesh_ix(THIS,i,j)
+% Return the ith node of element j
+
+if j < 1 | j > Mesh_numelt(m), error('Bad element number'); end
+if i < 1 | i > Mesh_get_nen_elt(m,j)
+  ix = 0;
+else
+  i = i-1;
+  j = j-1;
+  # int ix = m->Mesh.ix(int i, int j);
+  ix = ix+1;
+end
+
+
+@function id = Mesh_id(m,i,j)
+% id = Mesh_id(THIS,i,j)
+% Return the ith variable of node j
+
+if j < 1 | j > Mesh_numnp(m),   error('Bad element number'); end
+if i < 1 | i > Mesh_get_ndf(m), error('Bad dof number');     end
+i = i-1;
+j = j-1;
+# int id = m->Mesh.id(int i, int j);
+id = id+1;
+
+
+@function id = Mesh_branchid(m,i,j)
+% id = Mesh_branchid(THIS,i,j)
+% Return the ith variable of branch j
+if j < 1 | j > Mesh_numelt(m),       error('Bad element number'); end
+if i < 1 | i > Mesh_nbranch_id(m,j), error('Bad dof number');     end
+i = i-1;
+j = j-1;
+# int id = m->Mesh.branchid(int i, int j);
+id = id+1;
+
+
+@function id = Mesh_globalid(m,j)
+% id = Mesh_globalid(THIS,j)
+% Return the id for jth global variable
+if j < 1 | j > Mesh_numglobals(m), error('Bad global var number'); end
+j = j-1;
+# int id = m->Mesh.globalid(int j);
+id = id+1;
+
+
+@function nbranch_id = Mesh_nbranch_idj(m,j)
+% nbranch_id = Mesh_nbranch_id(THIS,j)
+% Return the number of variables of branch j
+if j < 1 | j > Mesh_numelt(m), error('Bad element number'); end
+j = j-1;
+# int nbranch_id = m->Mesh.nbranch_id(int j);
+
+
+@function n = Mesh_numnp(m)
+% Return the number of nodal points in the mesh.
+# int n = m->Mesh.numnp();
+
+
+@function n = Mesh_numelt(m)
+% Return the number of elements in the mesh.
+# int n = m->Mesh.numelt();
+
+
+@function n = Mesh_numglobals(m)
+% Return the number of global degrees of freedom in the mesh
+# int n = m->Mesh.numglobals();
+
+
+@function n = Mesh_get_numid(m)
+% Return the total number of degrees of freedom in the mesh.
+# int n = m->Mesh.get_numid();
+
+
+@function n = Mesh_get_ndm(m)
+% Return the dimension of the ambient space for the mesh.
+# int n = m->Mesh.get_ndm();
+
+
+@function n = Mesh_get_ndf(m)
+% Return the number of degrees of freedom per node in the mesh.
+# int n = m->Mesh.get_ndf();
+
+
+@function n = Mesh_get_nen(m)
+% Return the maximum number of nodes per element.
+# int n = m->Mesh.get_nen();
+
+
+@function n = Mesh_nbranch_id(m)
+% Return the number of branch variables in the mesh
+# int n = m->Mesh.nbranch_id();
+
+
+@function nen = Mesh_get_nen_elt(m,j)
+% nen = Mesh_get_nen_elt(THIS,j)
+% Return the number of nodes for element j
+
+if nargin == 1
+  numelt = Mesh_numelt(m);
+  # Mesh_get_nen_elt(Mesh* m, output int[numelt] nen);
+elseif j < 1 | j > Mesh_numelt(m)
+  error('Bad element number'); 
+else
+  j = j-1;
+  # int nen = m->Mesh.get_nen(int j);
+end
+
+
+// ------------------------------------------------------------------
+@function Mesh_apply_bc(m)
+% Re-apply boundary conditions to the mesh.
+# m->Mesh.apply_bc();
+
+
+@function Mesh_set_bc(m, funcname)
+% Sets default boundary conditions based on a Lua function or
+% table of Lua functions defined in the Lua mesh input file
+% under the name [funcname] if this is given.
+# m->Mesh.set_bc(cstring funcname);
+
+
+@function Mesh_set_globals_bc(m, funcname)
+% Sets default boundary conditions based on a Lua function or
+% table of Lua functions defined in the Lua mesh input file
+% under the name [funcname] if this is given.
+# m->Mesh.set_globals_bc(cstring funcname);
+
+
+@function Mesh_set_elements_bc(m, funcname)
+% Sets default boundary conditions based on a Lua function or
+% table of Lua functions defined in the Lua mesh input file
+% under the name [funcname] if this is given.
+# m->Mesh.set_elements_bc(cstring funcname);
+
+
+@function Mesh_assign_ids(m)
+% Number the degrees of freedom in the mesh.
+% Returns the total number of dofs.
+# m->Mesh.assign_ids();
+
+
+// ------------------------------------------------------------------
+@function Mesh_make_harmonic(m,omega,units)
+% Mesh_make_harmonic(THIS,omega,units)
+% Set v = i*omega*u and a = -omega^2*u
+% Input:
+%  omega - forcing frequency
+%  units - specify units of forcing frequency (default 'rs'):
+%    'hz': omega is in units of Hz
+%    'rs': omega is in units of rad/s
+
+if nargin < 3
+  c = 1;
+elseif strcmp(units, 'hz')
+  c = 1 / (2*pi);
+end
+omega = omega*c;
+# m->Mesh.make_harmonic(double omega);
+
+
+@function [R,Ri] = Mesh_assemble_R(m)
+% [R,Ri] = Mesh_assemble_R(THIS)
+% Assemble the system residual vector and return it in R and Ri.
+% Outputs:
+%  R  - real part of the residual vector
+%  Ri - imag part of the residual vector
+
+# m->Mesh.assemble_R();
+n = Mesh_get_numid(m);
+if nargout > 0
+  # m->Mesh.get_reduced(output double[n] R, const 'Mesh::VEC_F');
+end
+if nargout > 1
+  # m->Mesh.get_reduced(output double[n] Ri, const 'Mesh::VEC_FI');
+end
+
+
+@function [E] = Mesh_mean_power(m)
+% E = Mesh_mean_power(THIS)
+% Compute the time-averaged energy flux at each node.
+
+ndm   = Mesh_get_ndm(m);
+numnp = Mesh_numnp(m);
+# m->Mesh.mean_power(output double[ndm,numnp] E);
+
+
+@function f = Mesh_get_lua_fields(m, name, nfields)
+% f = Mesh_get_lua_fields(m, name, nfields)
+% Return an array of field values.
+% Inputs:
+%  name      - the name of the Lua function to define the fields
+%  nfields   - number of fields requested
+
+if nargin < 3, nfields = 1; end
+numnp = Mesh_numnp(m);
+# m->Mesh.get_lua_fields(cstring name, int nfields,
+#                        output double[nfields,numnp] f);
+
+
+@function v = Mesh_get_vector(m, name, reduced_type)
+% u = Mesh_get_vector(THIS, name, reduced_type)
+% Return a vector assembled in Lua
+% Inputs:
+%  name       - the name of the Lua function to define the pattern
+%  is_reduced - do we want the reduced (vs full) vector?  Default: 1
+%               0 - not reduced
+%               1 - reduced
+%               2 - not reduced, reshaped
+
+if nargin < 3, reduced_type = 1; end
+if reduced_type == 1
+  n = Mesh_get_numid(m);
+else
+  n = Mesh_get_ndf(m)*Mesh_numnp(m);
+end
+
+is_reduced = double(reduced_type == 1);
+v = zeros(n,1);
+# m->Mesh.get_vector(cstring name, inout double[n] v, int is_reduced);
+
+if reduced_type == 2
+  v = reshape(v, Mesh_get_ndf(m), Mesh_numnp(m));
+end
+
+
+@function [u,f] = Mesh_get_scaling_vectors(m, is_red)
+% [u,f] = Mesh_get_scaling_vectors(THIS, is_reduced)
+% Return a vector of scaling parameters for primary variable
+% Inputs:
+%  is_reduced - do we want the reduced (vs full) vector?  Default: 1
+
+if nargin < 2, is_red = 1; end
+if is_red
+  n = Mesh_get_numid(m);
+else
+  n = Mesh_get_ndf(m)*Mesh_numnp(m);
+end
+f = zeros(n,1);
+u = zeros(n,1);
+# m->Mesh.get_scaling_vector(inout double[] u, inout double[] f, int is_red);
+
+
+// ------------------------------------------------------------------
+@function Mesh_set_u(m, u)
+% Mesh_set_u(THIS, u)
+% Set the displacement
+% Inputs:
+%  u - displacement vector (or zero or no arg to clear the mesh u)
+
+if nargin < 2,                        u = []; 
+elseif length(u) < Mesh_get_numid(m), u = []; 
+end
+ur = real(u); ui = imag(u); 
+# m->Mesh.set_u (double[] ur);
+# m->Mesh.set_ui(double[] ui);
+
+
+@function Mesh_set_v(m, u)
+% Mesh_set_v(THIS, v)
+% Set the velocity
+% Inputs:
+%  v - velocity vector (or zero or no arg to clear the mesh u)
+
+if nargin < 2,                        u = []; 
+elseif length(u) < Mesh_get_numid(m), u = []; 
+end
+# m->Mesh.set_u(double[] nil, double[] u, double[] nil);
+
+
+@function Mesh_set_a(m, u)
+% Mesh_set_a(THIS, a)
+% Set the acceleration
+% Inputs:
+%  a - acceleration vector (or zero or no arg to clear the mesh u)
+
+if nargin < 2,                        u = []; 
+elseif length(u) < Mesh_get_numid(m), u = []; 
+end
+ur = real(u); ui = imag(u); nil = [];
+# m->Mesh.set_u(double[] nil, double[] nil, double[] u);
+
+
+@function [u] = Mesh_get_u(msh, is_reduced)
+% u = Mesh_get_u(THIS, is_reduced)
+% Get the node displacement array
+% Inputs:
+%  is_reduced - reduced or not?
+
+if nargin < 2, is_reduced = 1; end;
+if is_reduced
+  nil = [];
+  n = Mesh_get_numid(msh);
+  # msh->Mesh.get_reduced(output double[n] ur, const 'Mesh::VEC_U');
+  # msh->Mesh.get_reduced(output double[n] ui, const 'Mesh::VEC_UI');
+else
+  n = Mesh_get_ndf(msh)*Mesh_numnp(msh);
+  # Mesh_get_u1(Mesh* msh, output double[n] ur, output double[n] ui);
+end
+u = complex(ur,ui);
+
+
+@function [u] = Mesh_get_v(msh, is_reduced)
+% u = Mesh_get_v(THIS, is_reduced)
+% Get the node velocity array.
+% Inputs:
+%  is_reduced - reduced or not?
+
+if nargin < 2, is_reduced = 1; end;
+if is_reduced
+  nil = [];
+  n = Mesh_get_numid(msh);
+  # msh->Mesh.get_reduced(output double[n] u, const 'Mesh::VEC_V');
+else
+  n = Mesh_get_ndf(msh)*Mesh_numnp(msh);
+  # Mesh_get_v1(Mesh* msh, output double[n] u);
+end
+
+
+@function [u] = Mesh_get_a(msh, is_reduced)
+% u = Mesh_get_a(THIS, is_reduced)
+% Get the node acceleration array.
+% Inputs:
+%  is_reduced - reduced or not?
+
+if nargin < 2, is_reduced = 1; end;
+if is_reduced
+  nil = [];
+  n = Mesh_get_numid(msh);
+  # msh->Mesh.get_reduced(output double[n] u, const 'Mesh::VEC_A');
+else
+  n = Mesh_get_ndf(msh)*Mesh_numnp(msh);
+  # Mesh_get_a1(Mesh* msh, output double[n] u);
+end
+
+
+@function [u] = Mesh_get_disp(msh)
+% u = Mesh_get_disp(THIS, is_dim)
+% Get the node displacement array
+
+m = Mesh_get_ndf(msh);
+n = Mesh_numnp(msh);
+# Mesh_get_u1(Mesh* msh, output double[m,n] ur, output double[m,n] ui);
+u = complex(ur,ui);
+
+
+@function [f] = Mesh_get_force(msh)
+% f = Mesh_get_force(THIS)
+% Get the node displacement array
+
+# msh->Mesh.assemble_R();
+m = Mesh_get_ndf(msh);
+n = Mesh_numnp(msh);
+# Mesh_get_f1(Mesh* msh, output double[m,n] fr, output double[m,n] fi);
+f = complex(fr,fi);
+
+
+// ------------------------------------------------------------------
+@function e = Mesh_get_e(m)
+% e = Mesh_get_e(THIS)
+% Return the element connectivity array (a maxnen-by-numelt array).
+
+nen = Mesh_get_nen(m);
+numelt = Mesh_numelt(m);
+# Mesh_get_e1(Mesh* m, output int[nen,numelt] e);
+e = e+1;
+
+
+@function id = Mesh_get_id(m)
+% id = Mesh_get_id(THIS)
+% Return the variable-to-identifier mapping (a maxndf-by-numnp array).
+% Nodal variables subject to displacement BCs are represented by a 0.
+
+ndf = Mesh_get_ndf(m);
+numnp = Mesh_numnp(m);
+$ int* Mesh_get_id(Mesh* m) { return &(m->id(0,0)); }
+# int[ndf,numnp] id = Mesh_get_id(Mesh* m);
+id = id+1;
+
+
+@function x = Mesh_get_x(m)
+% x = Mesh_get_x(THIS)
+% Return an ndm-by-numnp array of node positions.
+
+ndm = Mesh_get_ndm(m);
+numnp = Mesh_numnp(m);
+$ double* Mesh_get_x(Mesh* m) { return &(m->x(0,0)); }
+# double[ndm,numnp] x = Mesh_get_x(Mesh* m);
+
+
+@function bc = Mesh_get_bc(m)
+% bc = Mesh_get_bc(THIS)
+% Return an ndf-by-numnp array of boundary codes.  The codes are
+%  0 - No boundary condition for this dof
+%  1 - Displacement (essential) boundary conditions
+%  2 - Flux (natural) boundary conditions
+
+ndf = Mesh_get_ndf(m);
+numnp = Mesh_numnp(m);
+# Mesh_get_bc1(Mesh* m, output double[ndf,numnp] bc);
+
+
+// ------------------------------------------------------------------
+@function [K] = Mesh_assemble_struct(m, reduced)
+% [K] = Mesh_assemble_dR(THIS)
+% Assembles mass, damping, or stiffness matrix from mesh.
+
+if nargin < 2, reduced=1; end
+# mxArray K = Mesh_assemble_struct1(Mesh* m, int reduced);
+
+
+@function [K] = Mesh_assemble_dR(m, cx, cv, ca, reduced)
+% [K] = Mesh_assemble_dR(THIS, cx, cv, ca, reduced)
+% Assembles mass, damping, or stiffness matrix from mesh.
+% If 'reduced' is given     -'reduced=1' Reduced form
+%                           -'reduced=0' Non-reduced form
+
+if nargin < 5, reduced=1; end;
+# mxArray K = Mesh_assemble_dR1(Mesh* m, double cx, double cv, double ca,
+#                               int reduced);
+
+
+@function [K] = Mesh_reassemble_dR(m, K, cx, cv, ca, reduced)
+% [K] = Mesh_reassemble_dR(THIS, K, cx, cv, ca, reduced)
+% Assembles mass, damping, or stiffness matrix from mesh.
+% If 'reduced' is given     -'reduced=1' Reduced form
+%                           -'reduced=0' Non-reduced form
+
+if nargin < 6, reduced=1; end;
+# mxArray K = Mesh_assemble_dR1(Mesh* m, mxArray K,
+#                               double cx, double cv, double ca,
+#                               int reduced);
+
+
+@function [K] = Mesh_element_dR(m, eltid, cx, cv, ca)
+% [K] = Mesh_element_dR(THIS, eltid, cx, cv, ca)
+% Gets scattered mass, damping, or stiffness matrix from mesh element.
+
+numelt = Mesh_numelt(m);
+if eltid < 1 | eltid > numelt, error('Bad element number'); end
+eltid = eltid - 1; % Convert to zero-based
+# mxArray K = Mesh_element_dR1(Mesh* m, int eltid,
+#                              double cx, double cv, double ca);
+
+
+@function [K] = Mesh_assemble_k(m)
+% [K] = Mesh_assemble_k(THIS)
+% Assemble the stiffness matrix for the mesh.
+K = Mesh_assemble_dR(m, 1, 0, 0);
+
+
+@function [M,K] = Mesh_assemble_mk(m)
+% [M,K] = Mesh_assemble_mk(THIS)
+% Assemble the mass and stiffness matrices for the mesh.
+K = Mesh_assemble_dR(m, 1, 0, 0);
+M = Mesh_assemble_dR(m, 0, 0, 1);
+
+
+@function [M,K,C] = Mesh_assemble_mkc(m)
+% [M,K,C] = Mesh_assemble_mkc(THIS)
+% Assemble the mass, stiffness, and damping matrices.
+K = Mesh_assemble_dR(m, 1, 0, 0);
+M = Mesh_assemble_dR(m, 0, 0, 1);
+C = Mesh_assemble_dR(m, 0, 1, 0);

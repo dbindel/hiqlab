@@ -1,0 +1,432 @@
+\section{Element interface}
+
+The {\tt Element} class in HiQLab really refers to an element
+type.  Individual elements in the mesh are not represented by
+separate objects; rather, we use a ``flyweight'' pattern in which
+characteristics of generic element types are stored inside an
+element object, and characteristics of particular instances are
+stored externally (in the mesh object).  This external information
+is passed to the element methods as a pointer to the mesh and an
+element identifier.  In order to do element-by-element
+initialization and assembly tasks, then, we loop over each element
+in the mesh and make calls of the form
+{\tt mesh->etypes[eltid]->method(mesh, eltid, ...)}.
+
+\subsection{Variable slots}
+
+Assembling element contributions into a global system requires that
+all elements share a common idea of what nodal variable number is
+assigned to what type of variable.  The variable slot mechanism
+provides a way to reconcile the global assignment of nodal variable
+numbers with a local assignment specific to each element type.
+
+For example, suppose we wanted to perform a simulation that
+combined mechanical, electrical, and thermal calculations.  We
+might decide at the global level that variables 0-2 at each node
+correspond to displacements, variable 3 corresponds to
+electrostatic potential, and variable 4 corresponds to temperature.
+But a thermomechanical element would not know about electrostatic
+potential; from the perspective of that element, perhaps variables
+0-2 should correspond to displacement and variable 3 should
+correspond to temperature.  In this case, the slot array for the
+coupling element would look like {\tt \{0, 1, 2, 4\}}.
+
+\subsection{Element declarations}
+
+\begin{verbatim}
+
+class Element {
+public:
+    Element(int nslots);
+    virtual ~Element();
+
+    /** Initialize element eltid of the mesh.  Allocate element vars. */
+    virtual void initialize(Mesh* mesh, int eltid);
+
+    /** Mark element IDs as active */
+    virtual void assign_ids(Mesh* mesh, int eltid);
+
+    /** Assemble structure */
+    virtual void assemble_struct(Mesh* mesh, int eltid, QStructAssembler* K);
+
+    /** Assemble element matrices */
+    virtual void assemble_dR(Mesh* mesh, int eltid, QAssembler* K,
+                             double cx=1, double cv=0, double ca=0);
+
+    /** Assemble element residual */
+    virtual void assemble_R(Mesh* mesh, int eltid);
+
+    /** Compute the (lumped) L2 projection of a field defined
+     *  at Gauss nodes.  Output is Mdiag += sum(integral N*N') and
+     *  xfields += integral N*xfunc.
+     */
+    virtual void project_L2(Mesh* mesh, int eltid, int nfields,
+                            double* Mdiag, double* xfields,
+                            FieldEval& xfunc);
+
+    /** Compute the stresses for an element at parent coordinates X.
+     *  Returns an incremented stress pointer.  Use two calls to
+     *  compute the stress associated with a complex displacement.
+     */
+    virtual double* stress(Mesh* mesh, int eltid, double* X, double* stress);
+
+    /** Compute the time-averaged energy flux for an element at parent
+     *  coordinates X.  Returns an incremented pointer.
+     */
+    virtual double* mean_power(Mesh* mesh, int eltid, double* X, double* EX);
+
+    /** Read and write the id_slot map
+     */
+    int  num_id_slots()        { return id_slots.size();  }
+    int  id_slot(int i) const  { return id_slots[i]; }
+    int& id_slot(int i)        { return id_slots[i]; }
+    void id_slot(int i, int x) { id_slots[i] = x;   }
+    int  max_id_slot();
+
+protected:
+    std::vector<int> id_slots;    // id_slots[i] = slot for ith local var
+
+    /** Default initializer -- just marks the mesh ID array. */
+    void assign_ids_default(Mesh* mesh, int elt);
+
+    void set_local_arrays(Mesh* mesh, int eltid,
+                          int* id, double* nodex, int ndm);
+    void set_local_id(Mesh* mesh, int eltid, int* id);
+    static void set_local_x(Mesh* mesh, int eltid, double* nx, int ndm);
+
+    void set_local_u (Mesh* mesh, int eltid, double*   nu);
+    void set_local_ui(Mesh* mesh, int eltid, double*   nu);
+    void set_local_u (Mesh* mesh, int eltid, dcomplex* nu);
+    void set_local_v (Mesh* mesh, int eltid, double*   nv);
+    void set_local_vi(Mesh* mesh, int eltid, double*   nv);
+    void set_local_v (Mesh* mesh, int eltid, dcomplex* nv);
+    void set_local_a (Mesh* mesh, int eltid, double*   na);
+    void set_local_ai(Mesh* mesh, int eltid, double*   na);
+    void set_local_a (Mesh* mesh, int eltid, dcomplex* na);
+
+    void add_local_f (Mesh* mesh, int eltid, double*   nodef1);
+    void add_local_f (Mesh* mesh, int eltid, dcomplex* nodef1);
+};
+
+\end{verbatim}
+\subsection{Element construction and destruction}
+
+The only internal data structure common to all element types is the
+variable slot map.  By default, we initialize this map to an
+appropriately-sized identity.  We defer to a higher-level routine
+(typically in the Lua code) the coordination of how slots should be
+assigned in a multiphysics problem
+
+Because this is a base class, we need a virtual destructor.  Said
+destructor doesn't need to do anything, though.
+
+\begin{verbatim}
+
+#define ME Element
+
+
+ME::ME(int nslots) :
+    id_slots(nslots)
+{
+    for (int i = 0; i < nslots; ++i)
+        id_slots[i] = i;
+}
+
+
+ME::~ME()
+{
+}
+
+
+\end{verbatim}
+\subsection{Element initialization}
+
+The element initialization phase is where the element tells
+HiQLab how many branch variables and history variables it will
+need.  It does this by setting {\tt mesh->nbranch(eltid)} and
+{\tt mesh->nhist(eltid)}.  An element without branch or history
+variables can use the default (empty) initialization routine.
+
+\begin{verbatim}
+
+void ME::initialize(Mesh* mesh, int eltid)
+{
+}
+
+
+\end{verbatim}
+\subsection{Allocating variables}
+
+The {\tt assign\_ids} method marks the nodal and branch variables
+that it will use.  By default, we assume that this includes all the
+nodal variables listed in the slots array at each node attached to
+the element, plus any branch variables that were allocated.  Some
+element types might not use all variables at all nodes, though; for
+example, a mixed pressure-displacement formulation could have
+pressure only associated with an internal node.
+
+\begin{verbatim}
+
+void ME::assign_ids(Mesh* mesh, int eltid)
+{
+    assign_ids_default(mesh, eltid);
+}
+
+
+void ME::assign_ids_default(Mesh* mesh, int eltid)
+{
+    int nen = mesh->get_nen(eltid);
+    for (int j = 0; j < nen; ++j) {
+        int nodeid = mesh->ix(j,eltid);
+        for (int i = 0; i < num_id_slots(); ++i)
+            mesh->id(id_slots[i], nodeid) = 1;
+    }
+    int nbranch = mesh->nbranch_id(eltid);
+    for (int j = 0; j < nbranch; ++j)
+        mesh->branchid(j, eltid) = 1;
+}
+
+
+\end{verbatim}
+\subsection{Assembling the residual and tangent}
+
+The tangent stiffness looks like
+\[
+K = c_u \frac{\partial R}{\partial u} +
+c_v \frac{\partial R}{\partial v} +
+c_a \frac{\partial R}{\partial a}
+\]
+where $u$, $v$, and $a$ are the displacement, velocity, and
+acceleration vectors, respectively.  The {\tt assemble\_dR} method
+adds this element's contribution to $K$.  The
+{\tt assemble\_struct} method just assembles the nonzero structure
+of the tangent stiffness.
+
+The residual vector $R(u,v,a)$ is assembled into the $F$ vector in
+the mesh object.  {\tt assemble\_R} adds this element's
+contribution.
+
+\begin{verbatim}
+
+
+void ME::assemble_struct(Mesh* mesh, int eltid, QStructAssembler* K)
+{
+    int nen = mesh->get_nen(eltid);
+    int nslots = num_id_slots();
+    int nbranch = mesh->nbranch_id(eltid);
+    std::vector<int> id(nen*nslots+nbranch);
+    set_local_id(mesh, eltid, &(id[0]));
+    K->add(&(id[0]), nen*nslots+nbranch);
+}
+
+
+void ME::assemble_dR(Mesh* mesh, int eltid, QAssembler* K,
+                     double cx, double cv, double ca)
+{
+}
+
+
+void ME::assemble_R(Mesh* mesh, int eltid)
+{
+}
+
+
+\end{verbatim}
+\subsection{Lumped $L^2$ projections}
+
+Computing a lumped $L^2$ projection of a quantity defined at the
+Gauss points is a two-step procedure.  First, call the element
+{\tt project\_L2} method on each element in the mesh.  The output
+of this calculation should be
+\begin{eqnarray*}
+{\tt Mdiag(i)} & = & \int_{\Omega} N_i \, d\Omega \\
+{\tt xfields(i,j)} & = & \int_{\Omega} N_i(x) v_j(x) \, d\Omega \\
+\end{eqnarray*}
+where $v_j(x)$ is the $j$th scalar component of the fields to be
+evaluated, and $N_i(x)$ is the shape associated with a unit displcement
+of variable $i$.
+
+At the end of the initial loop, we scale {\tt xfields(i,j)} by
+{\tt Mdiag(i)} in order to get the approximate $L^2$ projection of
+the fields onto the nodal shape functions.
+\begin{verbatim}
+
+
+void ME::project_L2(Mesh* mesh, int eltid, int nfields,
+                    double* Mdiag, double* xfields,
+                    FieldEval& func)
+{
+}
+
+
+\end{verbatim}
+\subsection{Gauss point quantities}
+
+Right now, there are two types of quantities that we can compute in
+an element (typically at the Gauss points).  The first is the
+stress components; the second is the mean energy flux in a
+time-harmonic simulation.
+
+The latter does seem fairly specific, and it's not coded for all
+elements.  This piece of the infrastructure should probably be
+handled more cleanly.
+
+\begin{verbatim}
+
+
+double* ME::stress(Mesh* mesh, int eltid, double* X, double* stress)
+{
+    return stress;
+}
+
+
+double* ME::mean_power(Mesh* mesh, int eltid, double* X, double* EX)
+{
+    return EX;
+}
+
+
+\end{verbatim}
+\subsection{Counting the number of ID slots in use}
+
+The {\tt max\_id\_slot} routine returns the last (global) variable
+index listed in the slot array.  Taking the maximum of the
+{\tt max\_id\_slot} return values over all elements tells us the
+maximum number of variables we need to allocate per node.
+I cannot think of any good reason that a user should call this
+routine -- it only seems useful inside the mesh {\tt initialize}
+method.
+
+\begin{verbatim}
+
+
+int ME::max_id_slot()
+{
+    int max_slot = 0;
+    for (int i = 0; i < num_id_slots(); ++i)
+        if (max_slot < id_slots[i])
+            max_slot = id_slots[i];
+    return max_slot;
+}
+
+
+\end{verbatim}
+\subsection{Transferring data from global arrays}
+
+For element calculations, we typically will want slices of the
+global {\tt ID}, {\tt X}, {\tt U}, {\tt V}, and {\tt A}
+arrays.  That's what the {\tt set\_local\_*} routines do.  Of these,
+the only one that is less than obvious is the {\tt set\_local\_id}
+function, which returns in its output array the list of all nodal
+variables for the element, followed by the list of all branch
+variables.
+
+\begin{verbatim}
+
+
+void ME::set_local_arrays(Mesh* mesh, int eltid,
+                          int* id, double* nodex, int ndm)
+{
+    set_local_x(mesh,  eltid, nodex, ndm);
+    set_local_id(mesh, eltid, id);
+}
+
+
+void ME::set_local_id(Mesh* mesh, int eltid, int* id1)
+{
+    int nen = mesh->get_nen(eltid);
+    QMatrix<int> id(id1, num_id_slots(), nen);
+    for (int j = 0; j < nen; ++j) {
+        int nodeid = mesh->ix(j,eltid);
+        for (int i = 0; i < num_id_slots(); ++i)
+            id(i,j) = mesh->inode(id_slots[i], nodeid);
+    }
+    int nbranch = mesh->nbranch_id(eltid);
+    for (int i = 0; i < nbranch; ++i)
+        id1[nen*num_id_slots()+i] = mesh->ibranch(i,eltid);
+}
+
+
+void ME::set_local_x(Mesh* mesh, int eltid, double* nodex1, int ndm)
+{
+    int nen = mesh->get_nen(eltid);
+    QMatrix<double> nodex(nodex1, ndm,nen);
+    for (int j = 0; j < nen; ++j) {
+        int nodeid = mesh->ix(j,eltid);
+        for (int i = 0; i < ndm; ++i)
+            nodex(i,j) = mesh->v(i,nodeid);
+    }
+}
+
+
+#define getter1(name, t, v) \
+void ME::name(Mesh* mesh, int eltid, t* nodex1)    \
+{                                                       \
+    int nen = mesh->get_nen(eltid);                     \
+    QMatrix<t> nodex(nodex1, num_id_slots(), nen);      \
+    for (int j = 0; j < nen; ++j) {                     \
+        int nodeid = mesh->ix(j,eltid);                 \
+        for (int i = 0; i < num_id_slots(); ++i)        \
+            nodex(i,j) = mesh->v(id_slots[i],nodeid);   \
+    }                                                   \
+    int nbranch = mesh->nbranch_id(eltid);              \
+    for (int i = 0; i < nbranch; ++i)                   \
+        nodex1[nen*num_id_slots()+i] = mesh->v(mesh->ibranch(i,eltid));  \
+}
+
+getter1(set_local_u,  double,   u)
+getter1(set_local_ui, double,   ui)
+getter1(set_local_u,  dcomplex, uz)
+getter1(set_local_v,  double,   v)
+getter1(set_local_vi, double,   vi)
+getter1(set_local_v,  dcomplex, vz)
+getter1(set_local_a,  double,   a)
+getter1(set_local_ai, double,   ai)
+getter1(set_local_a,  dcomplex, az)
+
+
+\end{verbatim}
+\subsection{Assembling data from global arrays}
+
+The output of some of the assembly loops goes to external storage,
+but the {\tt assemble\_R} functions assemble their results into the
+mesh {\tt F} array.  The {\tt add\_local\_f} functions take the
+local element residual contribution and add it into this array in
+the default way.
+
+\begin{verbatim}
+
+
+void ME::add_local_f(Mesh* mesh, int eltid, double* nodef1)
+{
+    int nen = mesh->get_nen(eltid);
+    QMatrix<double> nodef(nodef1, num_id_slots(),nen);
+    for (int j = 0; j < nen; ++j) {
+        int nodeid = mesh->ix(j,eltid);
+        for (int i = 0; i < num_id_slots(); ++i)
+            mesh->f(id_slots[i],nodeid) += nodef(i,j);
+    }
+    int nbranch = mesh->nbranch_id(eltid);
+    for (int i = 0; i < nbranch; ++i)
+        mesh->f(mesh->ibranch(i,eltid)) += nodef1[nen*num_id_slots()+i];
+}
+
+
+void ME::add_local_f(Mesh* mesh, int eltid, dcomplex* nodef1)
+{
+    int nen = mesh->get_nen(eltid);
+    QMatrix<dcomplex> nodef(nodef1, num_id_slots(),nen);
+    for (int j = 0; j < nen; ++j) {
+        int nodeid = mesh->ix(j,eltid);
+        for (int i = 0; i < num_id_slots(); ++i) {
+            mesh->f (id_slots[i],nodeid) += real(nodef(i,j));
+            mesh->fi(id_slots[i],nodeid) += imag(nodef(i,j));
+        }
+    }
+    int nbranch = mesh->nbranch_id(eltid);
+    for (int i = 0; i < nbranch; ++i) {
+        mesh->f (mesh->ibranch(i,eltid)) += real(nodef1[nen*num_id_slots()+i]);
+        mesh->fi(mesh->ibranch(i,eltid)) += imag(nodef1[nen*num_id_slots()+i]);
+    }
+}
+\end{verbatim}

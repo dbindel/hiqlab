@@ -1,0 +1,12 @@
+/* <generator matexpr>
+
+  // Test error expressions
+  scalar = 1;
+  vector = [1; 0];
+
+  bad1 = scalar + vector;
+  bad2 = scalar / vector;
+  bad3 = [scalar, vector];
+  bad4 = [scalar; vector'];
+  okay1 = scalar * vector;
+*/

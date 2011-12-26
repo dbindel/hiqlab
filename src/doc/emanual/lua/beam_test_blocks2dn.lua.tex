@@ -1,0 +1,11 @@
+-- Element order
+order  =  1
+
+-- Division along edges
+div_x  =  4
+div_y  =  2
+
+-- Define coordinates, element connectivity, and addition of
+-- nodes and elements to the simultaneously, using the
+-- blocks2dn command
+mesh:blocks2dn({0, beam_l},{div_x+1},{0, beam_w},{div_y+1}, etype, order)

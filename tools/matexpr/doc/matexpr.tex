@@ -1,0 +1,212 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{fancyheadings}
+
+\setlength{\oddsidemargin}{0.0in}
+\setlength{\textwidth}{6.5in}
+\setlength{\topmargin}{-0.5in}
+\setlength{\textheight}{9.0in}
+
+\bibliographystyle{unsrt}
+\renewcommand{\baselinestretch}{1.0}
+\newcommand{\matexpr}{\texttt{matexpr}}
+\newcommand{\gOR}{ $|$ }
+
+\title{\matexpr\ User Guide}
+\author{D. Bindel}
+
+\pagestyle{fancy}
+
+\headrulewidth 1.5pt
+\footrulewidth 1.5pt
+\chead{\matexpr}
+\lhead{}
+\rhead{}
+\cfoot{\thepage}
+\begin{document}
+
+\maketitle
+
+
+\section{Introduction}
+
+\matexpr\ is a source-to-source translator for embedding simple MATLAB-like
+matrix expressions in C/C++.  \matexpr\ interprets specially-formatted
+comments in a source file and uses them to generate ordinary C
+code.  For example, the following code computes a Rayleigh quotient
+for two three-by-three matrices:
+\begin{verbatim}
+double rayleigh_quotient3d(double* K, double* M, double* v)
+{
+    double rq;
+    /* <generator matexpr>
+     // Compute the Rayleigh quotient for a 3-by-3 pencil (K,M)
+
+     output rq;
+     input K(3,3), M(3,3), v(3);
+     rq = (v'*K*v)/(v'*M*v);
+    */
+    return rq;
+}
+\end{verbatim}
+
+In addition to MATLAB-like matrix construction and arithmetic, \matexpr\
+also provides simple symbolic differentiation.
+
+\matexpr\ is \emph{not} a full package for numerical linear algebra, nor
+even a particularly good substitute for a decent C++ matrix class.
+The purpose of \matexpr\ is to make it easy to avoid index errors and
+unnecessary overhead when evaluating the sorts of small matrix expressions
+that arise in coding finite elements and other similar tasks.
+
+
+\section{\matexpr\ command line}
+
+The {\tt matexpr} command line has the following form:
+\begin{verbatim}
+  matexpr [-comment] [-nogen] [-check] infile
+\end{verbatim}
+where
+\begin{itemize}
+
+\item {\tt -comment} specifies that \matexpr\ should output
+  labels in generated code to specify corresponding source lines.
+  This is mostly useful for debugging generated code.
+
+\item {\tt -line} specifies that \matexpr\ should output C preprocessor
+  \verb|#line| labels so that error diagnostics from the C/C++ compiler
+  will point to the appopriate place in the input file.
+
+\item {\tt -nogen} specifies that \matexpr\ should remove all
+  automatically generated code from the output file.
+
+\item {\tt -check} specifies that \matexpr\ should check the
+  input file without generating any other output.
+
+\item {\tt -c99complex} specifies that \matexpr\ should use C99-style
+  complex numbers (as opposed to C++ style complex).
+
+\end{itemize}
+
+
+\section{Interface syntax}
+
+The complete syntax for \matexpr\ is given in Figure~\ref{matexpr-syntax-fig}. 
+Matrices must have known {\em constant} dimensions.  Variables that are
+not explicitly declared for input or output are assumed to be scratch
+variables.
+
+\matexpr\ expressions are embedded in C-style comments that begin with
+the start-of-comment string {\tt /* <generator matexpr>}.  The
+starting tag can include an optional assignment of the form {\tt
+  complex=''{\it name}''} to specify a type to be used locally for
+complex inputs.  The generator finishes processing at the end of the C
+comment.  C++-style line comments may be used to document the
+generator code.  The output of the generator is also marked off by
+special comments, i.e.
+\begin{verbatim}
+  /* <generated matexpr> */ {
+  ... Generated source goes here ...
+  } /* </generated> */
+\end{verbatim}
+The generator will skip any code in the input file which has this form.
+Consequently, if {\tt foo1.cc} is a valid input file and we run
+\begin{verbatim}
+  matexpr foo1.cc > foo2.cc
+  matexpr foo2.cc > foo3.cc
+\end{verbatim}
+then the files {\tt foo2.cc} and {\tt foo3.cc} will be identical.
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{l@{ := }l}
+  statement & {\it var-id} {\tt =}  expr {\tt ;} \\
+            & {\it var-id} {\tt +=} expr {\tt ;} \\
+            & {\tt function} {\it id} {\tt (} formals {\tt ) = } expr {\tt ;} \\
+            & iospec decls {\tt ;}
+\vspace{5mm} \\
+  iospec    & {\tt input} \gOR\ {\tt output} \gOR\ {\tt inout} \gOR\
+              {\tt complex input} \gOR\ {\tt complex inout} \\
+  decls     & decl initializer {\tt ,} decl initializer {\tt ,} $\ldots$ \\
+  decl      & {\it var-id} \gOR\ 
+              {\it var-id} {\tt (} {\it m} {\tt )} \\
+            & {\it var-id} {\tt (} {\it m} {\tt ,} {\it n} {\tt )} \gOR\
+              {\it var-id} {\tt symmetric} {\tt (} {\it m} {\tt )} \gOR\
+              {\it var-id} {\tt [} {\it lda} {\tt ]} 
+                           {\tt (} {\it m} {\tt ,} {\it n} {\tt )} \\
+  initializer & {\tt =} expr \gOR\ $\epsilon$ \\
+  formals & {\it id} {\tt ,} {\it id} {\tt ,} $\ldots$ 
+\vspace{5mm} \\
+  expr & expr {\tt :} expr \\
+       & expr {\tt +} expr \\
+       & expr {\tt -} expr \\
+       & expr {\tt *} expr \\
+       & expr {\tt /} expr \\
+       & {\tt -} expr \\
+       & expr {\tt '} \\
+       & {\tt (} expr {\tt )} \\
+       & {\it var-id} \\
+       & {\it number} \\
+       & matrix \\
+       & {\it func-id} {\tt (} expr {\tt ,} expr {\tt ,} $\ldots$ {\tt )} \\
+       & {\it var-id} {\tt (} expr {\tt )} \gOR\ 
+         {\it var-id} {\tt (} expr {\tt ,} expr {\tt )} \\
+  matrix  & {\tt [} rows {\tt ]} \\
+  rows    & row {\tt ;} row {\tt ;} $\ldots$ \\
+  row     & expr {\tt ,} expr {\tt ,} $\ldots$
+\end{tabular}
+\caption{\matexpr\ call syntax}
+\label{matexpr-syntax-fig}
+\end{center}
+\end{figure}
+
+
+\section{Array handling}
+
+Matrices are represented as C arrays, but with Fortran-style
+column-major storage.  Input arrays can be declared symmetric, in
+which case only the upper triangle is accessed; a matrix declared as
+complex and symmetric is {\em not} Hermitian.  An array used for input
+or output can be specified with a leading dimension given in brackets;
+this is used, for example, to pass submatrices into \matexpr-generated
+expressions.  The array dimensions and the leading dimension must all
+be integer constants.
+
+Expressions of the form $A(i)$ or $A(i,j)$ where $A$ is an array are
+interpreted as subscript operations.  At present, the subscripts
+\emph{must} be compile-time integer constants.  If only one index is given
+for a two-dimensional array, it is interpreted as the index when the
+entries are listed in column-major order.  Indexing is one-based.
+
+
+\section{Functions}
+
+If \matexpr\ sees an expression of the form $f(...)$, where $f$ is not
+known to be a variable, it interprets the expression as a function
+call.  If $f$ corresponds to a declared function name, the function is
+called inline; if it is a special function, it is handled
+appropriately; and otherwise, it is interpreted as a C function call.
+If $f$ is known to be a variable, the expression is interpreted as a
+subscript operation.
+
+\matexpr\ recognizes two special functions:
+\begin{itemize}
+\item 
+  {\tt deriv(f, x)} -- differentiate the function $f$ with respect
+  to the input variable(s) $x$.  The second argument can be a
+  matrix; for example, {\tt deriv(f, [x, y])} is equivalent to
+  {\tt [ deriv(f, x), deriv(f, y) ]}.  Similarly,
+  {\tt deriv(f, [x; y])} is equivalent to {\tt [deriv(f,x); deriv(f,y)]}.
+  \matexpr\ only does forward-mode differentiation, and only handles
+  basic arithmetic operations and a few elementary transcendental functions.
+\item
+  {\tt eye(n)} -- produce an $n$-by-$n$ identity matrix.  $n$ must be a
+  compile time constant.
+\end{itemize}
+
+For C functions, \matexpr\ currently only allows functions of one
+argument.  If the argument specified is a matrix, \matexpr\ evaluates
+the function elementwise.
+
+
+\end{document}

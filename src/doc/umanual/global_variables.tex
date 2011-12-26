@@ -1,0 +1,177 @@
+\newpage
+\section{Global variables}
+\label{section:GlobalVariables}
+\subsection{Concept of a global variable}
+Introducing a global variable can be understood as 
+a means to specify constraints among individual 
+nodal degrees of freedom much like a lagrange
+multiplier. It allows one to specify a mode shape
+for selected nodal degrees of freedom and assigns
+a general degree of freedom for that mode.
+
+The following simple example of a three degree of
+freedom spring mass mechanical system may clarify
+this concept. The equation of motion for the system
+can be written as,
+\begin{eqnarray}
+\left[
+\begin{array}{ccc}
+m_1 & 0   & 0   \\
+0   & m_2 & 0   \\
+0   & 0   & m_3 
+\end{array}
+\right]
+\left(
+\begin{array}{c}
+\ddot{u}_1(t) \\
+\ddot{u}_2(t) \\
+\ddot{u}_3(t)
+\end{array}
+\right)
++
+\left[
+\begin{array}{ccc}
+k_1+k_2 & -k_2       &    0 \\
+-k_2    &  k_2 + k_3 & -k_3 \\
+-k_2    &  k_2 - k_3 &  k_3 
+\end{array}
+\right]
+\left(
+\begin{array}{c}
+{u}_1(t) \\
+{u}_2(t) \\
+{u}_3(t)
+\end{array}
+\right)
+=
+\left(
+\begin{array}{c}
+{F}_1(t) \\
+{F}_2(t) \\
+{F}_3(t)
+\end{array}
+\right)
+\end{eqnarray}
+or in more compact form,
+\begin{eqnarray}
+\bfM\ddot{\bfu}(t) + \bfK\bfu(t) &=& \bfF(t)
+\end{eqnarray}
+If we assume that the 2 and 3 degrees of freedom
+are connected by a rigid element, then the
+degrees of freedom can be expressed by one 
+general degree of freedom as follows,
+\begin{eqnarray}
+\left(
+\begin{array}{c}
+{u}_1(t) \\
+{u}_2(t) \\
+{u}_3(t)
+\end{array}
+\right)
+&=& 
+\left(
+\begin{array}{c}
+1  \\
+0  \\
+0 
+\end{array}
+\right)
+u_1(t)
++
+\left(
+\begin{array}{c}
+0 \\
+1 \\
+1
+\end{array}
+\right)
+z(t) \nonumber\\
+&=& 
+\bfe_1 u_1(t) + \bfV_z z(t) \nonumber\\
+&=&
+\left[
+\begin{array}{cc}
+\bfe_1 & \bfV_z
+\end{array}
+\right]
+\left(
+\begin{array}{c}
+u_1(t) \\
+z(t) 
+\end{array}
+\right) \nonumber\\
+&=& 
+\bfW 
+\left(
+\begin{array}{c}
+u_1(t) \\
+z(t) 
+\end{array}
+\right) 
+\end{eqnarray}
+Inserting this expression and restricting the error to be 
+orthogonal to this subspace spanned by the column vectors of 
+$\bfW$ results in the two degree of freedom system,
+\begin{eqnarray}
+\bfW^*\bfM\bfW
+\left(
+\begin{array}{c}
+\ddot{u}_1(t) \\
+\ddot{z}(t) 
+\end{array}
+\right) 
++ \bfW^*\bfK\bfW 
+\left(
+\begin{array}{c}
+u_1(t) \\
+z(t) 
+\end{array}
+\right) 
+&=& \bfW^*\bfF(t)
+\end{eqnarray}
+that must be solved. 
+
+\subsection{Creating and defining global variables}
+The key to creating a global variable is to construct the
+shape vector $\bfV_z$ pertaining to the global variable.
+This is conducted by specifying a function which is evaluated at
+each nodal degree of freedom, similar to the form of the
+nodal boundary conditions without the initial string. There
+is also an additional restriction that a number must be assigned
+for each nodal degree of freedom. As an example the shape
+function for the first example would have the form,
+\begin{verbatim}
+      function shape_func_global_variable(x)
+          if x==2 then return 1; end
+          if x==3 then return 1; end
+      end
+\end{verbatim}
+
+The general constructor for adding global variables to the
+mesh is:
+\begin{codelist}
+
+  \item[index = Mesh:add\_global(shapeg,s\_1,s\_2)]
+  \ttt{shapeg} must be a function of the form presented above.
+  The variables \ttt{s\_1,s\_2} are optional and are the nondimensionalization
+  parameters for the global variable. They can be numbers or strings
+  that are predefined in the table \ttt{dim\_scales}. (See section on
+  non-dimensionalization for details). The function returns the \ttt{index}
+  of the global variable.
+
+  \item[{Mesh:set\_globals()}]
+  Once all the global variables required are added they must be 
+  set to the mesh. Unless this function is called, the process will
+  not be complete.
+
+\end{codelist}
+For the case presented in the previous section adding the global 
+variable would take the process,
+\begin{verbatim}
+      index = mesh:add_global(shape_func_global_variable,'L','F')
+      mesh:set_globals()
+\end{verbatim}
+The value for the strings \ttt{'L'} and \ttt{'F'} must be set
+in \ttt{dim\_scales}.
+
+

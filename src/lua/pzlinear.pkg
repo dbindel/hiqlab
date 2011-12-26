@@ -1,0 +1,92 @@
+$#include "pzlinear.h"
+
+int pz_compute_eigs(Mesh* m, double w0,
+                     int nev, int ncv,
+                     double dr[nev] = 0, double di[nev] = 0);
+
+int pz_compute_eigs_mech(Mesh* m, double w0,
+                     int nev, int ncv,
+                     double dr[nev] = 0, double di[nev] = 0);
+
+$[
+-- Define a wrapper around pz_compute_eigs
+
+local pz_compute_eigs1 = pz_compute_eigs
+
+function pz_compute_eigs(mesh, w0, nev, ncv, dr, di)
+
+  -- Allow pass-by-name
+  if not w0 and type(mesh) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = p.w0 or 0
+    nev  = p.nev or 5
+    ncv  = p.ncv
+    dr   = p.dr
+    di   = p.di
+  end
+
+  -- Call compute_eigs(m, w0)
+  if not nev then
+    nev = 1
+  end
+
+  -- Call compute_eigs(m, w0, nev)
+  if not ncv then
+    if nev < 10 then ncv = 20 else ncv = 2*nev end
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {};
+    di = {};
+    for i=1,nev do
+      dr[i] = 0;
+      di[i] = 0;
+    end
+  end
+
+  local status = pz_compute_eigs1(mesh, w0, nev, ncv, dr, di)
+  return status, dr, di
+end
+
+-- Define a wrapper around pz_compute_eigs_mech
+
+local pz_compute_eigs_mech1 = pz_compute_eigs_mech
+
+function pz_compute_eigs_mech(mesh, w0, nev, ncv, dr, di)
+
+  -- Allow pass-by-name
+  if not w0 and type(mesh) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = p.w0 or 0
+    nev  = p.nev or 5
+    ncv  = p.ncv
+    dr   = p.dr
+    di   = p.di
+  end
+
+  -- Default shift and number of eigenvalues
+  w0  = w0  or 0
+  nev = nev or 5
+
+  -- Call compute_pz_eigs_mech(m, w0, nev)
+  if not ncv then
+    if nev < 10 then ncv = 20 else ncv = 2*nev end
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {};
+    di = {};
+    for i=1,nev do
+      dr[i] = 0;
+      di[i] = 0;
+    end
+  end
+
+  local status = pz_compute_eigs_mech1(mesh, w0, nev, ncv, dr, di)
+  return status, dr, di
+end
+$]

@@ -1,0 +1,103 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "mesh.h"
+$#include "pmlmode.h"
+$#include "qarray.h"
+
+$ int compute_eigs_vecs(Mesh* mesh, double w0, int nev, int ncv,
+$                       double* dr, double* di,
+$                       QArray* vr, QArray* vi)
+$ {
+$     return compute_eigs(mesh, w0, nev, ncv, dr, di, vr->data_r(), vi->data_r());
+$ }
+
+int compute_eigs_vecs(Mesh* mesh, double w0, int nev, int ncv,
+                      double dr[nev] = 0, double di[nev] = 0,
+                      QArray* vr, QArray* vi);
+
+$[
+local compute_eigs_vecs1 = compute_eigs_vecs
+function compute_eigs_vecs(mesh, w0, nev, ncv, dr, di, vr, vi)
+
+  -- Allow pass-by-name
+  if not w0 and type(mesh) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = 0 or p.w0
+    nev  = 5 or p.nev
+    ncv  = p.ncv
+    dr   = p.dr
+    di   = p.di
+    vr   = p.vr
+    vi   = p.vi
+  end
+
+  -- Default ncv value
+  if not ncv then
+    if nev < 10 then ncv = 20 else ncv = 2*nev end
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {}
+    di = {}
+    for i=1,nev do
+      dr[i] = 0
+      di[i] = 0
+    end
+  end
+
+  -- Initialize vectors
+  local QArray_type = 0
+  if not vr then
+    local numid = mesh:get_numid()
+    vr = QArray:new(numid, nev, QArray_type)
+    vi = QArray:new(numid, nev, QArray_type)
+  end
+
+  local status = compute_eigs_vecs1(mesh, w0, nev, ncv, dr, di, vr, vi)
+  return status, dr, di, vr, vi
+
+end
+$]
+
+int compute_eigs(Mesh* mesh, double w0, int nev, int ncv,
+                 double dr[nev] = 0, double di[nev] = 0);
+
+$[
+local compute_eigs1 = compute_eigs
+function compute_eigs(mesh, w0, nev, ncv, dr, di)
+
+  -- Allow pass-by-name
+  if not w0 and type(mesh) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = 0 or p.w0
+    nev  = 5 or p.nev
+    ncv  = p.ncv
+    dr   = p.dr
+    di   = p.di
+  end
+
+  -- Default ncv value
+  if not ncv then
+    if nev < 10 then ncv = 20 else ncv = 2*nev end
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {}
+    di = {}
+    for i=1,nev do
+      dr[i] = 0
+      di[i] = 0
+    end
+  end
+
+  local status = compute_eigs1(mesh, w0, nev, ncv, dr, di)
+  return status, dr, di
+
+end
+$]

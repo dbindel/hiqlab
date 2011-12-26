@@ -1,0 +1,61 @@
+object 1 class array type float
+rank 1 shape 2 items 1617
+lsb binary data file disk2d.bin,0
+attribute "dep" string "positions"
+#
+#
+object 2 class array type int
+rank 1 shape 4 items 1384
+lsb binary data file disk2d.bin,12936
+attribute "element type" string "quads"
+attribute "ref" string "positions"
+#
+#
+object 3 class array type float
+rank 1 shape 2 items 1617
+lsb binary data file disk2d.bin,35080
+attribute "dep" string "positions"
+#
+#
+object 4 class array type float
+rank 1 shape 2 items 1617
+lsb binary data file disk2d.bin,48016
+attribute "dep" string "positions"
+#
+#
+object 5 class array type float
+rank 0 items 1617
+lsb binary data file disk2d.bin,60952
+attribute "dep" string "positions"
+#
+#
+object 6 class array type float
+rank 0 items 1617
+lsb binary data file disk2d.bin,67420
+attribute "dep" string "positions"
+#
+#
+object 7 class array type float
+rank 0 items 1617
+lsb binary data file disk2d.bin,73888
+attribute "dep" string "positions"
+#
+#
+object 8 class array type float
+rank 0 items 1617
+lsb binary data file disk2d.bin,80356
+attribute "dep" string "positions"
+#
+#
+object "mesh" class field
+component "positions" value 1
+component "connections" value 2
+component "displacements" value 3
+component "displacementsi" value 4
+component "field0" value 5
+component "field1" value 6
+component "fieldi0" value 7
+component "fieldi1" value 8
+#
+#
+end

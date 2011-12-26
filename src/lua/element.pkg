@@ -1,0 +1,251 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "element.h"
+$#include "mesh.h"
+$#include "couple_em2d.h"
+$#include "elastic2d.h"
+$#include "pmlfunc.h"
+$#include "pmlscalar1d.h"
+$#include "pmlscalar2d.h"
+$#include "pmlscalar3d.h"
+$#include "pmlscalarax.h"
+$#include "pmlelastic2d.h"
+$#include "pmlelastic3d.h"
+$#include "pmlelasticax.h"
+$#include "pmlelastictax.h"
+$#include "pmlelastic2d_te.h"
+$#include "pmlelasticax_te.h"
+$#include "pmlelastic3d_te.h"
+$#include "pmlelastic2d_pz.h"
+$#include "pmlelastic2hd_pz.h"
+$#include "pmlelastic3d_pz.h"
+$#include "tie_field.h"
+$#include "tie_field2.h"
+$#include "model_circuit.h"
+
+
+class PMLFunc {
+    virtual ~PMLFunc();
+};
+
+class LuaPMLFunc : public PMLFunc {
+    LuaPMLFunc(lua_State* L, lua_Object func);
+    ~LuaPMLFunc();
+};
+
+class BoxPMLFunc : public PMLFunc {
+    BoxPMLFunc(double xrad, double yrad,
+               double xpml, double ypml,
+               double f0);
+    ~BoxPMLFunc();
+};
+
+
+class Element {
+    virtual ~Element();
+    virtual void assemble_dR(Mesh* mesh, int eltid, QAssembler* K,
+                             double cx=1, double cv=0, double ca=0);
+    int num_id_slots();
+    void id_slot(int i, int x);
+};
+
+class PMLElement : public Element {
+    void set_stretch(lua_State* L, lua_Object func);
+    void set_stretch(PMLFunc* func);
+};
+
+class TieFieldElement : public Element {
+    TieFieldElement(lua_State* L, lua_Object func);
+};
+
+class TieFieldElement2 : public Element {
+    TieFieldElement2(lua_State* L, lua_Object func);
+};
+
+class CoupleEM2d : public Element {
+    CoupleEM2d(double kappa);
+};
+
+class Elastic2d : public Element {
+    Elastic2d(double E, double nu, double rho, int plane_type);
+    Elastic2d(double D[9], double rho);
+};
+
+class PMLScalar1d : public PMLElement {
+    PMLScalar1d(double kappa, double rho);
+};
+
+class PMLScalar2d : public PMLElement {
+    PMLScalar2d(double kappa, double rho);
+    PMLScalar2d(double D[4], double rho);
+};
+
+class PMLScalar3d : public PMLElement {
+    PMLScalar3d(double kappa, double rho);
+    PMLScalar3d(double D[9], double rho);
+};
+
+class PMLScalarAxis : public PMLElement {
+    PMLScalarAxis(double kappa, double rho);
+    PMLScalarAxis(double D[4], double rho);
+};
+
+class PMLElastic2d : public PMLElement {
+    PMLElastic2d(double E, double nu, double rho, int plane_type);
+    PMLElastic2d(double D[9], double rho);
+    PMLElastic2d(lua_State* L, lua_Object func);
+};
+
+class PMLElastic3d : public PMLElement {
+    PMLElastic3d(double E, double nu, double rho);
+    PMLElastic3d(double D[36], double rho);
+};
+
+class PMLElasticAxis : public PMLElement {
+    PMLElasticAxis(double E, double nu, double rho);
+    PMLElasticAxis(double D[16], double rho);
+};
+
+class PMLElasticTAxis : public PMLElement {
+    PMLElasticTAxis(double E, double nu, double rho, int ltheta);
+    PMLElasticTAxis(double D[36], double rho, int ltheta);
+};
+
+class PMLElastic2d_te : public PMLElement {
+    PMLElastic2d_te(double E, double nu, double rho,
+                    double at, double cp, double kt, double T0,
+                    int plane_type);
+    PMLElastic2d_te(double Db[16], double rho,
+                    double at, double cp, double kt, double T0);
+};
+
+class PMLElasticAxis_te : public PMLElement {
+    PMLElasticAxis_te(double E, double nu, double rho,
+                      double at, double cp, double kt, double T0);
+    PMLElasticAxis_te(double Db[25], double rho,
+                      double at, double cp, double kt, double T0);
+};
+
+class PMLElastic3d_te : public PMLElement {
+    PMLElastic3d_te(double E, double nu, double rho,
+                    double at, double cp, double kt, double T0);
+    PMLElastic3d_te(double Db[49], double rho,
+                    double at, double cp, double kt, double T0);
+};
+
+class PMLElastic2d_pz : public PMLElement {
+    PMLElastic2d_pz(double E, double nu, double rho,
+                    double pz[18], double kds, int plane_type);
+    PMLElastic2d_pz(double Db[25], double rho);
+};
+
+class PMLElastic2hd_pz : public PMLElement {
+    PMLElastic2hd_pz(double E, double nu, double rho,
+                     double pz[18], double kds);
+    PMLElastic2hd_pz(double Db[16], double rho);
+};
+
+class PMLElastic3d_pz : public PMLElement {
+    PMLElastic3d_pz(double E, double nu, double rho,
+                    double pz[18], double kds);
+    PMLElastic3d_pz(double Db[81], double rho);
+};
+
+class Resistor : public Element {
+    Resistor(double resist, double resist_i = 0);
+};
+
+class Capacitor : public Element {
+    Capacitor(double cap, double cap_i = 0);
+};
+
+class Capacitor1: public Element {
+    Capacitor1(double cap, double cap_i = 0);
+};
+
+class Capacitor2 : public Element {
+    Capacitor2(double cap, double cap_i = 0);
+};
+
+class Inductor : public Element {
+    Inductor(double induct, double induct_i = 0);
+};
+
+class VIsrc : public Element {
+    VIsrc();
+};
+
+class Electrode : public Element {
+    Electrode(int vglobalid, double lt);
+};
+
+class Electrode2 : public Element {
+    Electrode2(int vglobalid, double lt);
+};
+
+int add_tie_field(Mesh* mesh, Element* elt);
+
+$ int add_tie_field(Mesh* mesh, Element* elt)
+$ {
+$     return mesh->add_element(0, elt, 0, 1);
+$ }
+
+
+$[
+
+-- Wrapper for tie field call
+
+Mesh['TieField'] = function(mesh, func)
+  local e = mesh:own( TieFieldElement:new(func) )
+  return add_tie_field(mesh,e);
+end
+
+Mesh['TieField2'] = function(mesh, func)
+  local e = mesh:own( TieFieldElement2:new(func) )
+  return add_tie_field(mesh,e);
+end
+
+
+-- Constructor wrappers
+
+local function wrapnew(objname)
+  local obj = _G[objname]
+  Mesh[objname] = function(mesh, ...)
+    local status, result = pcall(obj.new, obj, unpack(arg))
+    if not status then
+      error('Error constructing ' .. objname .. ': ' .. result)
+    end
+    return mesh:own( result )
+  end
+end
+
+wrapnew 'CoupleEM2d'
+wrapnew 'Elastic2d'
+wrapnew 'PMLScalar1d'
+wrapnew 'PMLScalar2d'
+wrapnew 'PMLScalar3d'
+wrapnew 'PMLScalarAxis'
+wrapnew 'PMLElastic2d'
+wrapnew 'PMLElastic3d'
+wrapnew 'PMLElasticAxis'
+wrapnew 'PMLElasticTAxis'
+wrapnew 'PMLElastic2d_te'
+wrapnew 'PMLElastic3d_te'
+wrapnew 'PMLElasticAxis_te'
+wrapnew 'PMLElastic2d_pz'
+wrapnew 'PMLElastic3d_pz'
+wrapnew 'PMLElastic2hd_pz'
+wrapnew 'Resistor'
+wrapnew 'Capacitor'
+wrapnew 'Capacitor1'
+wrapnew 'Capacitor2'
+wrapnew 'Inductor'
+wrapnew 'VIsrc'
+wrapnew 'Electrode'
+wrapnew 'Electrode2'
+
+$]
+
+$lfile "elementslot.lua"

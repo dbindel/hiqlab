@@ -1,0 +1,181 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "cscmatrix.h"
+$#include "umfmatrix.h"
+$#include "coordmatrix.h"
+$#include "qarray.h"
+
+class CoordMatrix {
+    CoordMatrix(int N);
+    CSCMatrix* to_sparse();
+};
+
+class CSCMatrix {
+    CSCMatrix(int m, int n, int nnz = 0, int real_flag = 0);
+    ~CSCMatrix();
+    int get_m();
+    int get_n();
+    int is_real();
+    // n()
+    // apply(x,Ax)
+    void dump(const char* fname);
+    void load(const char* fname);
+    // load_triple(i,j,pr,pi)
+    CSCMatrix* mul(CSCMatrix* B, CSCMatrix* result);
+    CSCMatrix* mul(CSCMatrix* Y, CSCMatrix* X, CSCMatrix* result);
+    CSCMatrix* add(double a, double b, CSCMatrix* B, CSCMatrix* result);
+    CSCMatrix* transpose();
+};
+
+class UMFMatrix {
+    UMFMatrix(CSCMatrix* cscmat);
+    ~UMFMatrix();
+    int get_n();
+    int is_real();
+    // solve(x,b)
+};
+
+$[
+function CSCMatrix:n()
+    return self:get_n()
+end
+
+function splu(A)
+    local LU = UMFMatrix:new(A)
+    tolua.takeownership(LU)
+    return LU
+end
+$]
+
+// -- load_triple method
+
+void csc_load_triple(CSCMatrix* A, int nnz, int ii[nnz], int jj[nnz], 
+                     double pr[nnz]);
+void csc_load_triple(CSCMatrix* A, int nnz, int ii[nnz], int jj[nnz], 
+                     double pr[nnz], double pi[nnz]);
+
+$ void csc_load_triple(CSCMatrix* A, int nnz, int* ii, int* jj, 
+$                      double* pr, double* pi=0)
+$ {
+$     A->load(ii, jj, pr, pi, nnz);
+$ }
+
+$[
+function CSCMatrix:load_triple(ii, jj, pr, pi)
+   local nnz = table.getn(ii)
+   if pi then
+     csc_load_triple(self, nnz, ii, jj, pr, pi)
+   else
+     csc_load_triple(self, nnz, ii, jj, pr)
+   end
+end
+$]
+
+
+// -- Apply method
+
+int cscmatrix_apply(CSCMatrix* A, QArray* x, QArray* Ax);
+
+$ int cscmatrix_apply(CSCMatrix* A, QArray* x, QArray* Ax)
+$ {
+$     int n = A->get_n();
+$     if (x->m() != n || Ax->m() != n || x->n() != Ax->n())
+$         return -1;
+$     if (x->type() != Ax->type())
+$         return -2;
+$     if (!A->is_real() != 0 && x->type() == 0)
+$         return -3;
+$     for (int j = 0; j < x->n(); ++j) {
+$         if (x->type() == 0)
+$             A->apply(x->data_r()  + j*x->lda(),
+$                      Ax->data_r() + j*Ax->lda());
+$         else if (x->type() == 1)
+$             A->apply(((dcomplex*) x->data_r() ) + j*x->lda(),
+$                      ((dcomplex*) Ax->data_r()) + j*Ax->lda());
+$         else
+$             A->apply(x->data_r() + j*x->lda(),
+$                      x->data_i() + j*x->lda(),
+$                      Ax->data_r() + j*Ax->lda(),
+$                      Ax->data_i() + j*Ax->lda());
+$     }
+$     return 0;
+$ }
+
+$[
+function CSCMatrix:apply(x, ax)
+  if not ax then
+    ax = QArray:new(x:m(), x:n(), x:type(), x:base())
+  end
+
+  local status = cscmatrix_apply(self, x, ax)
+  if status < 0 then
+    if status == -1 then
+      error("Dimensions must match in matrix multiply")
+    elseif status == -2 then
+      error("Storage types must match in matrix multiply")
+    elseif status == -3 then
+      error("Cannot store a complex result in a real output")
+    end
+  end
+
+  return ax
+end
+$]
+
+// -- Solve method
+
+int umfmatrix_solve(UMFMatrix* A, QArray* x, QArray* b);
+
+$ int umfmatrix_solve(UMFMatrix* A, QArray* x, QArray* b)
+$ {
+$     int n = A->get_n();
+$     if (x->m() != n || b->m() != n || x->n() != b->n())
+$         return -1;
+$     if (x->type() != b->type())
+$         return -2;
+$     if (!A->is_real() && x->type() == 0)
+$         return -3;
+$     for (int j = 0; j < x->n(); ++j) {
+$         int status;
+$         if (x->type() == 0)
+$             status = A->solve(x->data_r() + j*x->lda(),
+$                               b->data_r() + j*b->lda());
+$         else if (x->type() == 1)
+$             status = A->solve(((dcomplex*) x->data_r()) + j*x->lda(),
+$                               ((dcomplex*) b->data_r()) + j*b->lda());
+$         else
+$             status = A->solve(x->data_r() + j*x->lda(),
+$                               x->data_i() + j*x->lda(),
+$                               b->data_r() + j*b->lda(),
+$                               b->data_i() + j*b->lda());
+$         if (status != 0)
+$             return -4;
+$     }
+$     return 0;
+$ }
+
+$[
+function UMFMatrix:solve(x, ax)
+  if not ax then
+    ax = QArray:new(x:m(), x:n(), x:type(), x:base())
+    ax, x = x, ax
+  end
+
+  local status = umfmatrix_solve(self, x, ax)
+  if status < 0 then
+    if status == -1 then
+      error("Dimensions must match in matrix solve")
+    elseif status == -2 then
+      error("Storage types must match in matrix solve")
+    elseif status == -3 then
+      error("Cannot store a complex result in a real output")
+    elseif status == -4 then
+      error("Problem during factor/solve")
+    end
+  end
+
+  return x
+end
+$]

@@ -1,0 +1,115 @@
+$#include "pmlfunc.h"
+
+/* Put test stubs here */
+
+$ static double* x;
+$ const unsigned NP = 4000000;
+$
+$ void setup_x()
+$ {
+$     x = new double[NP];
+$     for (unsigned i = 0; i < NP; ++i) {
+$         x[i] = i;
+$     }
+$ }
+$
+$ double sum_fx1a(lua_State* L, unsigned f)
+$ {
+$     double sum = 0;
+$     for (unsigned i = 0; i < NP; ++i) {
+$         lua_pushvalue(L,-1);
+$         lua_pushnumber(L, x[i]);
+$         lua_call(L,1,1);
+$         sum += lua_tonumber(L,-1);
+$         lua_pop(L,1);
+$     }
+$     return sum;
+$ }
+$
+$ double sum_fx1b(lua_State* L, unsigned f)
+$ {
+$     double sum = 0;
+$     for (unsigned i = 0; i < NP; ++i) {
+$         lua_pushvalue(L,-1);
+$         lua_pushnumber(L, x[i]);
+$         lua_pcall(L,1,1,0);
+$         sum += lua_tonumber(L,-1);
+$         lua_pop(L,1);
+$     }
+$     return sum;
+$ }
+$
+$ double sum_fx1c(lua_State* L, unsigned f)
+$ {
+$     double sum = 0;
+$     for (unsigned i = 0; i < NP; i += 4) {
+$         lua_pushvalue(L,-1);
+$         lua_pushnumber(L, x[i]);
+$         lua_pushnumber(L, x[i+1]);
+$         lua_pushnumber(L, x[i+2]);
+$         lua_pushnumber(L, x[i+3]);
+$         lua_call(L,4,1);
+$         sum += lua_tonumber(L,-1);
+$         lua_pop(L,1);
+$     }
+$     return sum;
+$ }
+$
+$ double sum_fx2()
+$ {
+$     double sum = 0;
+$     for (unsigned i = 0; i < NP; ++i) {
+$         if (x[i] < 10)
+$             ++sum;
+$     }
+$     return sum;
+$ }
+$
+$ class TestFunc {
+$ public:
+$     virtual ~TestFunc() {}
+$     virtual double operator()(double x) {
+$         if (x < 10)
+$             return 1;
+$         return 0;
+$     }
+$ };
+$
+$ double sum_fx3(TestFunc& testfunc)
+$ {
+$    double sum = 0;
+$    for (unsigned i = 0; i < NP; ++i)
+$        sum += testfunc(x[i]);
+$    return sum;
+$ }
+$
+$ inline double get_x(int i) { return x[i]; }
+$
+$ int get_x2(lua_State* L)
+$ {
+$     unsigned i = (int) lua_tonumber(L,1);
+$     unsigned n = (int) lua_tonumber(L,2);
+$     for (unsigned j = 0; j < n; ++j)
+$         lua_pushnumber(L, x[i+j]);
+$     return n;
+$ }
+$
+$ void register_getx2(lua_State* L)
+$ {
+$     lua_register(L, "get_x2", get_x2);
+$ }
+
+class TestFunc {
+    TestFunc();
+    ~TestFunc();
+};
+
+void setup_x();
+double sum_fx1a(lua_State* L, lua_Object func);
+double sum_fx1b(lua_State* L, lua_Object func);
+double sum_fx1c(lua_State* L, lua_Object func);
+double sum_fx2();
+double sum_fx3(TestFunc& testfunc);
+double get_x(int i);
+void register_getx2(lua_State* L);
+

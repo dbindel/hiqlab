@@ -1,0 +1,9 @@
+I am pleased to announce the release of MWrap, a tool in the spirit of
+SWIG for generating MATLAB and Octave interfaces to C/C++ code.  MWrap
+input files consist of ordinary MATLAB code augmented with lines that
+describe C/C++ function and method calls.  From these, MWrap produces
+a MEX file to handle the calls and MATLAB scripts to call the MEX
+file.  The source and manual are available at
+
+  http://www.cims.nyu.edu/~dbindel/mwrap
+

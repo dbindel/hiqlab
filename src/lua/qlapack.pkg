@@ -1,0 +1,169 @@
+$#include "qlapack.h"
+
+void dgemm(char* trans, double alpha, QArray* A, QArray* B,
+           double beta, QArray* C);
+int dgetrf(QArray* A, QIArray* ipiv);
+int dgetrs(char* trans, QArray* A, QIArray* ipiv, QArray* b);
+int dgeev(QArray* A, QArray* wr, QArray* vl, QArray* vr);
+
+$[
+local my_dgemm = dgemm
+function dgemm(trans, alpha, A, B, beta, C)
+
+  beta  = beta or 0
+  trans = string.upper(trans)
+  local transA = string.sub(trans, 1,1)
+  local transB = string.sub(trans, 2,2)
+  if transA == ' ' or transA == '' then transA = 'N' end
+  if transB == ' ' or transB == '' then transB = 'N' end
+  trans = transA .. transB
+
+  assert(transA=='N' or transA=='T', 'Invalid transpose flag for A matrix')
+  assert(transB=='N' or transB=='T', 'Invalid transpose flag for B matrix')
+  assert(tolua.type(A)=='QArray' and A:type()==0, 'A must be a real QArray')
+  assert(tolua.type(B)=='QArray' and B:type()==0, 'B must be a real QArray')
+
+  local M, N, K
+  if trans == 'NN' then
+    M, N, K = A:m(), B:n(), A:n()
+    assert(B:m() == K, 'Incompatible matrix dimensions')
+  elseif trans == 'TT' then
+    M, N, K = A:n(), B:m(), A:m()
+    assert(B:n() == K, 'Incompatible matrix dimensions')
+  elseif trans == 'NT' then
+    M, N, K = A:m(), B:m(), A:n()
+    assert(B:n() == K, 'Incompatible matrix dimensions')
+  elseif trans == 'TN' then
+    M, N, K = A:n(), B:n(), A:m()
+    assert(B:m() == K, 'Incompatible matrix dimensions')
+  end
+
+  if not C then
+    C = QArray:new(M,N)
+  else
+    assert(tolua.type(C)=='QArray' and C:type()==0, 'C must be a real QArray')
+    assert(C:m() == M and C:n() == N, 'Incompatible output dimensions')
+  end
+  my_dgemm(trans, alpha, A, B, beta, C)
+
+  return C
+
+end
+
+local oldmul = QArray.__mul
+function QArray.__mul(A,B)
+  if tolua.type(A) == 'QArray' and tolua.type(B) == 'QArray' then
+    return dgemm('NN', 1, A, B)
+  else
+    return oldmul(A,B)
+  end
+end
+
+local my_dgetrf = dgetrf;
+function dgetrf(A, ipiv)
+  local m,n = A:size()
+  if not ipiv then
+    ipiv = QIArray:new(min(m,n))
+  else
+    assert(ipiv:m() >= m or ipiv:m() >= n, 'ipiv is too small')
+  end
+  assert(A:type() == 0, 'A must be a real QArray')
+  local status = my_dgetrf(A, ipiv)
+  return status, ipiv, A
+end
+
+function lu(A)
+  local LU = A:clone()
+  local status, ipiv = dgetrf(LU)
+  if status < 0 then
+    error('Invalid argument to dgetrf?')
+  elseif status > 0 then
+    error('Singular matrix in LU factorization')
+  end
+  return ipiv, LU
+end
+
+local my_dgetrs = dgetrs
+function dgetrs(trans, A, ipiv, b)
+  trans = string.upper(trans)
+  assert(trans == 'N' or trans == 'T', 'Invalid transpose flag')
+  assert(A:m() == A:n(),    'Factor matrix must be square')
+  assert(A:m() >= ipiv:m(), 'Ipiv array is too small'     )
+  assert(b:m() == A:m(),    'RHS is the wrong size'       )
+  local status = my_dgetrs(trans, A, ipiv, b)
+  assert(status == 0, 'Invalid argument to dgetrs')
+  return b
+end
+
+function lusolve(P,LU, b,x)
+  if not x then
+    x = b:clone()
+  elseif b ~= x then
+    x:copy(b)
+  end
+  dgetrs('N', LU,P, x)
+  return x
+end
+
+function luTsolve(P,LU, b,x)
+  if not x then
+    x = b:clone()
+  elseif b ~= x then
+    x:copy(b)
+  end
+  dgetrs('T', LU,P, x)
+  return x
+end
+
+function QArray:solve(b,x)
+  local ipiv, LU
+  ipiv, LU = lu(self)
+  x = lusolve(ipiv,LU,b,x)
+  return x
+end
+
+local my_dgeev = dgeev
+function dgeev(A, w, vl, vr)
+  assert(A:type() == 0, 'A must be real')
+  assert(A:m() == A:n(), 'A must be square')
+
+  if w then
+    assert(w:type() ~= 1, 'W cannot be type 1 complex')
+    assert(w:m() >= A:m(), 'W is too small')
+    assert((w:type() == 0 and w:n() == 2) or
+           (w:type() == 2 and w:n() == 1),
+           'W has the wrong number of columns')
+  else
+    w = QArray:new(A:m(),2)
+  end
+
+  if tolua.type(vl) == 'QArray' then
+    assert(vl:type() == 0, 'vl must be a real QArray')
+    assert(vl:m() >= A:m() and vl:n() >= A:m(), 'vl is too small')
+  elseif vl then
+    vl = QArray:new(A:m(),A:m())
+  end
+
+  if tolua.type(vr) == 'QArray' then
+    assert(vr:type() == 0, 'vr must be a real QArray')
+    assert(vr:m() >= A:m() and vr:n() >= A:m(), 'vr is too small')
+  elseif vr then
+    vr = QArray:new(A:m(),A:m())
+  end
+
+  local status = my_dgeev(A, w, vl, vr)
+  if status < 0 then
+    error('Invalid argument to dgeev')
+  elseif status > 0 then
+    error('QR iteration failed to converge')
+  end
+
+  return w, vl, vr
+end
+
+function eig(A, w, vl, vr)
+  A = A:clone()
+  return dgeev(A, w, vl, vr)
+end
+
+$]

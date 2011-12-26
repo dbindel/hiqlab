@@ -1,0 +1,3 @@
+Copy the contents of your Win32 MATLAB/extern/include directory here
+(for cross-compilation), or change WMEXINC in ../make.inc to point to
+your MATLAB/extern/include directory.

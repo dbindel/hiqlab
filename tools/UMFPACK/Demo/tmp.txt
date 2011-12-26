@@ -1,0 +1,305 @@
+pgcc -g -O2 -tp=k8-32  -I../Include -I../../AMD/Include -I../../UFconfig -o umfpack_zi_demo umfpack_zi_demo.c ../Lib/libumfpack.a ../../AMD/Lib/libamd.a /opt/amd/acml/3.1.0/pgi32/lib/libacml.a  -lm -pgf77libs -lg2c -lpgftnrtl
+./umfpack_zi_demo > my_umfpack_zi_demo.out
+diff umfpack_zi_demo.out my_umfpack_zi_demo.out
+204,205c204,205
+<     max abs. value on diagonal of U:            1.77313e+00
+<     reciprocal condition number estimate:       7.59e-02
+---
+>     max abs. value on diagonal of U:            2.50759e+00
+>     reciprocal condition number estimate:       5.37e-02
+241,242c241,242
+< 	row 4 :  (0.207254 + 0.0103627i)
+< 	row 3 :  (0.25 + 0.0375i)
+---
+> 	row 4 :  (0.196891 + 0.217617i)
+> 	row 3 :  (0.2125 + 0.2875i)
+245c245
+< 	row 4 :  (0.379275 - 0.174093i)
+---
+> 	row 4 :  (0.553368 + 0.205181i)
+248c248
+< 	row 4 :  (3.00161 + 1.2864i)
+---
+> 	row 4 :  (1.7152 + 4.28801i)
+278c278
+<     4 : (-1.6422 - 0.668715i)
+---
+>     4 : (-0.973486 - 2.31092i)
+358,359c358,359
+<     max abs. value on diagonal of U:               1.77e+00
+<     estimate of reciprocal of condition number:    7.59e-02
+---
+>     max abs. value on diagonal of U:               2.51e+00
+>     estimate of reciprocal of condition number:    5.37e-02
+370c370
+<     solve flops:                                   5.23000e+02
+---
+>     solve flops:                                   1.02800e+03
+372,373c372,373
+<     iterative refinement steps attempted:          0
+<     sparse backward error omega1:                  7.87e-17
+---
+>     iterative refinement steps attempted:          1
+>     sparse backward error omega1:                  2.23e-01
+378c378
+<     total symbolic + numeric + solve flops:        5.57000e+02
+---
+>     total symbolic + numeric + solve flops:        1.06200e+03
+389,390c389,390
+<     0 : (0.121188 - 0.561001i)
+<     1 : (2.39887 + 0.666938i)
+---
+>     0 : (-0.606384 - 1.06928i)
+>     1 : (2.71449 + 1.24832i)
+392,393c392,393
+<     3 : (1.57395 - 1.52801i)
+<     4 : (2.3876 - 3.04245i)
+---
+>     3 : (1.74006 - 1.32868i)
+>     4 : (0.61506 - 4.75364i)
+396c396
+< maxnorm of residual: 6.21725e-15
+---
+> maxnorm of residual: 25
+403c403
+< determinant: (-1.7814+ (2.3784)i) * 10^(2)
+---
+> determinant: (-4.1598+ (0.597)i) * 10^(2)
+406,407c406,407
+<     0 : (0.121188 - 0.561001i)
+<     1 : (2.39887 + 0.666938i)
+---
+>     0 : (-0.567024 + 1.45043i)
+>     1 : (3.52816 - 0.44461i)
+409,410c409,410
+<     3 : (1.57395 - 1.52801i)
+<     4 : (2.3876 - 3.04245i)
+---
+>     3 : (1.92278 - 2.0424i)
+>     4 : (-1.67071 - 3.31172i)
+413c413
+< maxnorm of residual: 6.21725e-15
+---
+> maxnorm of residual: 45
+490,491c490,491
+<     max abs. value on diagonal of U:               1.77e+00
+<     estimate of reciprocal of condition number:    7.59e-02
+---
+>     max abs. value on diagonal of U:               2.51e+00
+>     estimate of reciprocal of condition number:    5.37e-02
+502,505c502,505
+<     solve flops:                                   4.80000e+02
+<     iterative refinement steps taken:              0
+<     iterative refinement steps attempted:          0
+<     sparse backward error omega1:                  6.06e-17
+---
+>     solve flops:                                   1.46000e+03
+>     iterative refinement steps taken:              1
+>     iterative refinement steps attempted:          2
+>     sparse backward error omega1:                  9.63e-02
+510c510
+<     total symbolic + numeric + solve flops:        5.14000e+02
+---
+>     total symbolic + numeric + solve flops:        1.49400e+03
+517c517
+<     1 : (0.31463 + 1.38626i)
+---
+>     1 : (0.0467223 + 1.81148i)
+523c523
+< maxnorm of residual: 7.68703e-15
+---
+> maxnorm of residual: 5.10267
+616,617c616,617
+< 	row 4 :  (0.547945 + 0.0273973i)
+< 	row 3 :  (0.25 + 0.0375i)
+---
+> 	row 4 :  (0.520548 + 0.575342i)
+> 	row 3 :  (0.2125 + 0.2875i)
+620c620
+< 	row 4 :  (1.00274 - 0.460274i)
+---
+> 	row 4 :  (1.46301 + 0.542466i)
+652c652
+<     4 : (-0.50137 + 0.230137i)
+---
+>     4 : (-0.731507 - 0.271233i)
+744c744
+<     solve flops:                                   5.15000e+02
+---
+>     solve flops:                                   1.01200e+03
+746,747c746,747
+<     iterative refinement steps attempted:          0
+<     sparse backward error omega1:                  7.33e-17
+---
+>     iterative refinement steps attempted:          1
+>     sparse backward error omega1:                  2.29e-01
+752c752
+<     total symbolic + numeric + solve flops:        5.32000e+02
+---
+>     total symbolic + numeric + solve flops:        1.02900e+03
+758,759c758,759
+<     0 : (10.9256 - 2.23085i)
+<     1 : (-5.36071 - 1.82131i)
+---
+>     0 : (9.84351 - 9.69478i)
+>     1 : (-7.12727 + 3.51535i)
+761,762c761,762
+<     3 : (-1.60191 - 1.88814i)
+<     4 : (32.7361 - 2.90097i)
+---
+>     3 : (-1.87084 + 0.30031i)
+>     4 : (33.0296 - 23.8351i)
+765c765
+< maxnorm of residual: 3.9968e-15
+---
+> maxnorm of residual: 25
+876,877c876,877
+< 	row 4 :  (0.357698 + 0.00311042i)
+< 	row 3 :  (0.272727 + 0.00454545i)
+---
+> 	row 4 :  (0.354588 + 0.360809i)
+> 	row 3 :  (0.268182 + 0.277273i)
+880c880
+< 	row 4 :  (0.204044 - 0.0895801i)
+---
+> 	row 4 :  (0.293624 + 0.114463i)
+883c883
+< 	row 4 :  (1.0818 - 0.0116951i)
+---
+> 	row 4 :  (1.09349 + 1.0701i)
+913c913
+<     4 : (-0.329747 + 0.0696386i)
+---
+>     4 : (-0.399385 - 0.260108i)
+1005c1005
+<     solve flops:                                   5.23000e+02
+---
+>     solve flops:                                   1.02800e+03
+1007,1008c1007,1008
+<     iterative refinement steps attempted:          0
+<     sparse backward error omega1:                  4.75e-17
+---
+>     iterative refinement steps attempted:          1
+>     sparse backward error omega1:                  2.28e-01
+1013c1013
+<     total symbolic + numeric + solve flops:        5.57000e+02
+---
+>     total symbolic + numeric + solve flops:        1.06200e+03
+1019,1020c1019,1020
+<     0 : (7.56307 - 3.68974i)
+<     1 : (-0.831991 + 0.0627998i)
+---
+>     0 : (5.38848 - 9.36058i)
+>     1 : (-0.933657 + 1.10251i)
+1022,1023c1022,1023
+<     3 : (-0.00206892 - 0.107735i)
+<     4 : (0.658245 + 0.0407649i)
+---
+>     3 : (-0.0372511 - 0.350205i)
+>     4 : (0.691119 - 0.23977i)
+1026c1026
+< maxnorm of residual: 5.92582e-15
+---
+> maxnorm of residual: 25
+1151,1152c1151,1152
+<     max abs. value on diagonal of U:            9.13625e-01
+<     reciprocal condition number estimate:       2.64e-01
+---
+>     max abs. value on diagonal of U:            9.79123e-01
+>     reciprocal condition number estimate:       2.46e-01
+1188c1188
+< 	row 4 :  (0.240091 + 0.0591529i)
+---
+> 	row 4 :  (0.180938 + 0.299244i)
+1191c1191
+< 	row 4 :  (0.847284 + 0.423642i)
+---
+> 	row 4 :  (0.423642 + 1.27093i)
+1194c1194
+< 	row 4 :  (0.659838 - 0.0126577i)
+---
+> 	row 4 :  (0.672496 + 0.64718i)
+1225c1225
+<     4 : (-0.677403 - 0.143059i)
+---
+>     4 : (-0.534344 - 0.820463i)
+1246,1248c1246,1248
+< 	column 1 : (0.240091 + 0.0591529i)
+< 	column 2 : (0.847284 + 0.423642i)
+< 	column 3 : (0.659838 - 0.0126577i)
+---
+> 	column 1 : (0.180938 + 0.299244i)
+> 	column 2 : (0.423642 + 1.27093i)
+> 	column 3 : (0.672496 + 0.64718i)
+1273c1273
+< 	row 4 : (-0.677403 - 0.143059i)
+---
+> 	row 4 : (-0.534344 - 0.820463i)
+1309,1311c1309,1311
+<     4 : 4 1  (0.240091 + 0.0591529i)
+<     5 : 4 2  (0.847284 + 0.423642i)
+<     6 : 4 3  (0.659838 - 0.0126577i)
+---
+>     4 : 4 1  (0.180938 + 0.299244i)
+>     5 : 4 2  (0.423642 + 1.27093i)
+>     6 : 4 3  (0.672496 + 0.64718i)
+1398,1399c1398,1399
+<     max abs. value on diagonal of U:               9.14e-01
+<     estimate of reciprocal of condition number:    2.64e-01
+---
+>     max abs. value on diagonal of U:               9.79e-01
+>     estimate of reciprocal of condition number:    2.46e-01
+1410c1410
+<     solve flops:                                   4.80000e+02
+---
+>     solve flops:                                   9.70000e+02
+1412,1413c1412,1413
+<     iterative refinement steps attempted:          0
+<     sparse backward error omega1:                  8.89e-17
+---
+>     iterative refinement steps attempted:          1
+>     sparse backward error omega1:                  1.85e-01
+1418c1418
+<     total symbolic + numeric + solve flops:        5.14000e+02
+---
+>     total symbolic + numeric + solve flops:        1.00400e+03
+1425c1425
+<     1 : (-0.831991 + 0.0627998i)
+---
+>     1 : (-0.863391 - 0.353196i)
+1431c1431
+< maxnorm of residual: 5.6552e-15
+---
+> maxnorm of residual: 5.81614
+1510,1511c1510,1511
+<     max abs. value on diagonal of U:               9.14e-01
+<     estimate of reciprocal of condition number:    2.64e-01
+---
+>     max abs. value on diagonal of U:               9.79e-01
+>     estimate of reciprocal of condition number:    2.46e-01
+1522c1522
+<     solve flops:                                   4.80000e+02
+---
+>     solve flops:                                   9.70000e+02
+1524,1525c1524,1525
+<     iterative refinement steps attempted:          0
+<     sparse backward error omega1:                  8.89e-17
+---
+>     iterative refinement steps attempted:          1
+>     sparse backward error omega1:                  1.85e-01
+1530c1530
+<     total symbolic + numeric + solve flops:        5.14000e+02
+---
+>     total symbolic + numeric + solve flops:        1.00400e+03
+1537c1537
+<     1 : (-0.831991 + 0.0627998i)
+---
+>     1 : (-0.863391 - 0.353196i)
+1543c1543
+< maxnorm of residual: 5.6552e-15
+---
+> maxnorm of residual: 5.81614
+1547c1547
+< Total time:  0.00 seconds (CPU time),  0.01 seconds (wallclock time)
+---
+> Total time:  0.00 seconds (CPU time),  0.00 seconds (wallclock time)

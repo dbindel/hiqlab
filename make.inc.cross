@@ -1,0 +1,67 @@
+INCLUDE = -I$(TOOLS)/UFconfig/ \
+	-I$(TOOLS)/AMD/Include -I$(TOOLS)/UMFPACK/Include \
+	-I$(TOOLS)/lua/include -I$(TOOLS)/tolua++/include 
+
+CC	 = gcc
+CXX	 = g++
+CFLAGS	 = -g -O2 $(INCLUDE)
+CXXFLAGS = -g -O2 $(INCLUDE)
+CYGPATH  = echo
+HIQINT32 = int
+F90      = 
+
+AR	 = ar
+RANLIB	 = ranlib
+AWK	 = gawk
+
+MEX	 = /opt/bin/mex -largeArrayDims LD="g++"
+MEXEXT	 = dll
+
+TOOLS    = `$(CYGPATH) /home/dbindel/windows/hiqlab/tools/`
+TOOLSX   = `$(CYGPATH) /home/dbindel/work/hiqlab/tools/`
+MWRAP	 = $(TOOLSX)/mwrap/mwrap
+TOLUA	 = $(TOOLSX)/tolua++/bin/tolua
+DSBWEB   = $(TOOLSX)/dsbweb/dsbweb
+
+FLTK_CXXFLAGS = 
+FLTK_LIBS     = 
+LUALIBS	   = -L/home/dbindel/windows/pkg/tolua++/lib -ltolua \
+		-L/home/dbindel/windows/pkg/lua/lib -llua -llualib
+
+UMF_LIBS = /home/dbindel/windows/pkg/UMFPACK/Lib/libumfpack.a \
+	   /home/dbindel/windows/pkg/AMD/Lib/libamd.a
+
+LAPACK_LIBS = -L/home/dbindel/windows/pkg/lapack-3.1.0 -llapack
+BLAS_LIBS   = -lblas
+ARLIBS      = /home/dbindel/windows/pkg/ARPACK/libarpack.a
+
+F77_LIBS    =  -lg2c -lm
+MF77_LIBS   =  -lg2c -lm
+F90_LIBS    = 
+OTHER_LIBS  = -lm 
+
+LALIBS      = $(SUPERLUDIST_LIBS) $(SUPERLU_LIBS) $(MUMPS_LIBS) \
+		$(SCALAPACK_LIBS) $(METIS_LIBS) $(BLACS_LIBS) \
+		$(ARLIBS) $(UMF_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS)
+MLALIBS     = $(ARLIBS) $(UMF_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS)
+
+LIBS       = $(LUALIBS) $(LALIBS)  $(F77_LIBS)  $(OTHER_LIBS)
+MEXLIBS    = $(LUALIBS) $(MLALIBS) $(MF77_LIBS) $(OTHER_LIBS)
+
+VERSION	   = 0.4
+
+
+# -- Specifically for compiling MEX files with the mingw32 toolchain
+
+WMEXINC    = $(TOOLS)/mex-mingw32/mexinc
+WMEXLIBDIR = $(TOOLS)/mex-mingw32/mexlib
+
+WMEXLIBS   = $(WMEXLIBDIR)/fixup.o \
+	$(WMEXLIBDIR)/mexlib1.lib \
+	$(WMEXLIBDIR)/mexlib2.lib \
+	$(WMEXLIBDIR)/mexlib3.lib 
+
+WMEXFLAGS=\
+        -DMATLAB_MEX_FILE -I $(WMEXINC) -O3 \
+        -malign-double -fno-exceptions -mcpu=pentium 
+

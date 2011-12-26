@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+<head>
+  <title>MWrap: A MEX interface generator</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" type="text/css" href="../dsb.css">
+</head>
+
+<body>
+<div id="Content">
+
+  <h1>MWrap: A MEX interface generator</h1>
+
+
+  <h2 class="ColorHeader"><a name="intro">Introduction</a></h2>
+
+  <p>
+    MWrap is an interface generation system in the spirit of
+    <a href="http://www.swig.org/">SWIG</a> or 
+    <a href="http://lnc.usc.edu/~holt/matwrap/">matwrap</a>.
+    From a set of augmented MATLAB script files, MWrap will generate
+    a MEX gateway to desired C/C++ and FORTRAN function calls and 
+    MATLAB function files to access that gateway.  MWrap takes care of 
+    the details of converting to and from MATLAB's data structures, 
+    allocating and freeing temporary storage, handling object upcasts 
+    (even in the presence of multiple inheritance), and catching C++ 
+    exceptions.  The gateway functions also work with recent versions 
+    of Octave when compiled with <tt>mkoctfile --mex</tt>.
+  </p>
+
+
+  <h2 class="ColorHeader"><a name="download">Download</a></h2>
+
+  <ul>
+    <li><a href="http://www.cims.nyu.edu/~dbindel/mwrap/mwrap-0.24.tar.gz">Most
+      recent version (mwrap-0.24.tar.gz)</a></li>
+    <li><a href="http://www.cims.nyu.edu/~dbindel/mwrap/mwrap.pdf">User 
+      manual</a></li>
+  </ul>
+
+
+  <h2 class="ColorHeader"><a name="bugs">Reporting bugs</a></h2>
+
+  <p>
+    Bug reports related to MWrap should be sent to <br>
+    <img style="float:none;margin:0px" width="209" height="26" src="../address.gif">
+  </p>
+
+  <hr>
+
+  <address class="SmallText">
+    David Bindel (dbindel-at-etc)
+  </address>
+
+<!-- Start of StatCounter Code -->
+<script type="text/javascript" language="javascript">
+var sc_project=2629511; 
+var sc_invisible=0; 
+var sc_partition=25; 
+var sc_security="59894c60"; 
+</script>
+
+<script type="text/javascript" language="javascript" src="http://www.statcounter.com/counter/counter.js"></script><noscript><a href="http://www.statcounter.com/" target="_blank"><img  src="http://c26.statcounter.com/counter.php?sc_project=2629511&java=0&security=59894c60&invisible=0" alt="web metrics" border="0"></a> </noscript>
+<!-- End of StatCounter Code -->
+
+</div>
+</body>
+
+</html>

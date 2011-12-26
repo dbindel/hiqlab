@@ -1,0 +1,113 @@
+\documentclass{article}
+
+\oddsidemargin - 0.15in
+\evensidemargin - 0.15in
+\textwidth=6.5in
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{hhline}
+\pagestyle{fancy}
+\lhead{}
+
+% =================================================================
+
+\newcommand{\hiq}{\texttt{HiQLab}}
+\newcommand{\mum}{\ensuremath{\mathrm{\mu m}}}
+
+\newcommand{\devnote}[1]{%
+  \begin{trivlist}
+  \item\textbf{Development note}: #1
+  \end{trivlist}}
+
+\newenvironment{codelist}[1][\quad]%
+  {\begin{list}{}{%
+   \settowidth{\labelwidth}{\texttt{#1}\hfil}%
+   \setlength{\leftmargin}{\labelwidth}%
+   \addtolength{\leftmargin}{\labelsep}%
+   \addtolength{\leftmargin}{\parindent}%
+   \renewcommand{\makelabel}[1]{\texttt{##1}}}}%
+  {\end{list}}
+
+\newcommand{\ttt}[1]{\texttt{#1}}
+\newcommand{\tbf}[1]{\textbf{#1}}
+\renewcommand{\Re}{\operatorname{Re}}
+\renewcommand{\Im}{\operatorname{Im}}
+
+% =================================================================
+\newcommand{\bfa}{\mathbf{a}}
+\newcommand{\bfb}{\mathbf{b}}
+\newcommand{\bfB}{\mathbf{B}}
+\newcommand{\bbC}{\mathbb{C}}
+\newcommand{\bfc}{\mathbf{c}}
+\newcommand{\bfC}{\mathbf{C}}
+\newcommand{\bfD}{\mathbf{D}}
+\newcommand{\bbD}{\mathbb{D}}
+\newcommand{\bfd}{\mathbf{d}}
+\newcommand{\bfE}{\mathbf{E}}
+\newcommand{\bfe}{\mathbf{e}}
+\newcommand{\bfF}{\mathbf{F}}
+\newcommand{\bfK}{\mathbf{K}}
+\newcommand{\bfM}{\mathbf{M}}
+\newcommand{\bfn}{\mathbf{n}}
+\newcommand{\bfN}{\mathbf{N}}
+\newcommand{\phat}{\hat{p}}
+\newcommand{\bfp}{\mathbf{p}}
+\newcommand{\bfQ}{\mathbf{Q}}
+\newcommand{\bfq}{\mathbf{q}}
+\newcommand{\bfR}{\mathbf{R}}
+\newcommand{\bfs}{\mathbf{s}}
+\newcommand{\bft}{\mathbf{t}}
+\newcommand{\bfu}{\mathbf{u}}
+\newcommand{\bfU}{\mathbf{U}}
+\newcommand{\bfV}{\mathbf{V}}
+\newcommand{\bfx}{\mathbf{x}}
+\newcommand{\bfw}{\mathbf{w}}
+\newcommand{\bfW}{\mathbf{W}}
+\newcommand{\rkTwoI}{\mathbf{1}}
+\newcommand{\rkFourIsym}{\mathbb{I}_{sym}}
+
+\newcommand{\beps}{\boldsymbol{\varepsilon}}
+\newcommand{\bphi}{\boldsymbol{\phi}}
+\newcommand{\bkappa}{\boldsymbol{\kappa}}
+\newcommand{\bfnabla}{\mathbf{\nabla}}
+\newcommand{\rhoq}{\rho_q}
+\newcommand{\bsig}{\boldsymbol{\sigma}}
+\newcommand{\balpha}{\boldsymbol{\alpha}}
+
+\newcommand{\intO}{\int_\Omega}
+\newcommand{\intOe}{\int_{\Omega_e}}
+\newcommand{\intG}{\int_\Gamma}
+\newcommand{\intGe}{\int_{\Gamma_e}}
+\newcommand{\dO}{d\Omega}
+\newcommand{\dG}{d\Gamma}
+\newcommand{\dphi}{\delta\phi}
+\newcommand{\del}{\partial}
+
+% =================================================================
+\begin{document}
+
+\title{\hiq: User's Manual}
+\author{David Bindel and Tsuyoshi Koyama}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% =================================================================
+
+\input{hiqlab_intro}
+\input{lua_features}
+\input{mesh_description}
+\input{global_variables}
+\input{element_library}
+\input{material_models}
+\input{nondimensionalization}
+\input{basic_analysis_matlab}
+\input{basic_analysis_lua}
+\input{plotting_matlab}
+
+\end{document}

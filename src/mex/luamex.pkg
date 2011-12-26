@@ -1,0 +1,27 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ *
+ */
+
+
+$#include "luamatlab.h"
+
+void luamex_print(const char* s);
+
+$[
+
+-- Overloaded version of print
+function print(...)
+  for i = 1,arg.n do
+    luamex_print(arg[i])
+    if i < arg.n then
+      luamex_print(' ');
+    end
+  end
+  luamex_print('\n');
+end
+
+-- Overload the assert output
+_ALERT = print;
+
+$]

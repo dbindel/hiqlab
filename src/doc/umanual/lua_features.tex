@@ -1,0 +1,295 @@
+\newpage
+\section{Basic features from Lua}
+\emph{Write about and or features!!}
+
+\subsection{Variable types}
+Since Lua is a dynamically typed language, there
+are no type definitions in the language. In other
+words, the type is defined by the variable assigned. 
+There are eight basic types in Lua. Of these the
+{\tt HiQLab} user should be aware of the following 6.
+\begin{enumerate}
+\item {\tt nil}: This is the type that is assigned to all variables
+by default. {\tt nil} can be assigned to a variable as,
+\begin{verbatim}
+   a = nil
+\end{verbatim}
+\item {\tt boolean}: This has two types, {\tt true}and {\tt false}. 
+In Lua, any value may represent a condition. In conditionals,
+\emph{ONLY} {\tt false} and {\tt nil} are considered false, and everything
+else is considered true. Beware that the value zero and empty string
+both represent \emph{TRUE}. 
+\item {\tt number}: Lua has only one number type, real double-precision
+floating point numbers. There are \emph{NO} integer types. Valid types
+of number representations are,
+\begin{verbatim}
+            4     0.4    4.57e-3   0.3e12   5e+20
+\end{verbatim}
+\item {\tt string}: Strings have the usual meaning, a sequence of 
+characters. The string can be assigned by putting them between 
+single quotes or double quotes. They can be assigned to a variable 
+by the following statement.
+\begin{verbatim}
+   a = "a line"
+   b = 'another line'
+\end{verbatim}
+Strings in Lua can contain the following C-like escape sequences:
+\begin{table}[htbp]
+\caption{C-like escape sequences}
+\centering
+\begin{tabular}{c|c}
+{\tt \textbackslash b} & : back space \\
+{\tt \textbackslash n} & : newline \\
+{\tt \textbackslash t} & : horizontal tab \\
+{\tt \textbackslash v} & : vertical tab \\
+{\tt \textbackslash\textbackslash} & : back slash \\
+{\tt \textbackslash '} & : single quote \\
+{\tt \textbackslash "} & : double quote 
+\end{tabular}
+\end{table}
+
+Strings can be concatenated by the operator {\tt ..}.
+\begin{verbatim}
+   a = "Hello"
+   b = "World"
+   c = a..b
+   d = a.." "..b
+   print(c)         --> HelloWorld
+   print(d)         --> Hello World
+\end{verbatim}
+
+\item {\tt table}: This type is used to implement associative arrays.
+An associative array is an array that can be indexed not only with
+numbers, but also with strings or any other value of the language. 
+Moreover, tables have no fixed size, and the size is adjusted dynamically.
+Thus a single Lua table can contain different types of data.
+\begin{verbatim}
+   a    = {}               -- create a table
+   a[1] = 4                -- store double
+   a[21]= 'Hello world'    -- store string
+   print(a[1])             --> 4
+
+   a['A']    = a           -- Index with character
+   a['John'] = Doe         -- Index with string
+   print(a['John'])        --> Doe
+   print(a[John])          --> nil
+\end{verbatim}
+Tables in Lua are treated as objects similar to Java. Thus a
+program that manipulates tables, only manipulates references
+or pointer to them. 
+\begin{verbatim}
+   b =  a                  -- the reference to the table that 'a'
+                          -- points to is passed
+\end{verbatim}
+
+Additionally, since tables are like objects,
+{\tt a.name} cna be used as syntactic sugar for {\tt a["name"]}.
+\begin{verbatim}
+   a      = {}
+   a["x"] = 4 
+   print(a["x"])           --> 4
+   print(a.x)              --> 4
+\end{verbatim}
+Tables can be initialied with values by the following argument,
+in which case the keys to the corresponding values start from
+one (and not with zero, as in C).
+\begin{verbatim}
+   a      = { 10, 11, 12}
+   print(a[1])             --> 10
+\end{verbatim}
+
+\item {\tt function} This aspect will further be explained in
+section ????.
+
+\end{enumerate}
+
+WHAT YOU SHOULD KNOW(Zentei Chishiki).
+
+\subsection{Ending a line}
+A statement in Lua is called a {\tt chunk},
+and is simply a sequence of statements. 
+This {\tt chunk} can take a single line,
+multiple lines, or can even span multiple files.
+A semicolon may optionally follow any statement,
+but this is just a convention. Thus, the following
+four chunks are equivalent.
+\begin{verbatim}
+   -- Chunk 1
+   a = 1
+   b = a*2
+
+   -- Chunk 2
+   a = 1;
+   b = a*2
+
+   -- Chunk 3
+   a = 1; b = a*2
+
+   -- Chunk 4
+   a = 1  b = a*2
+\end{verbatim}
+
+
+\subsection{Print statement}
+All variable types can be printed to the screen through
+the command {\tt print}
+\begin{verbatim}
+   a = 4
+   print(a)     --> 4
+   b = "Hello World"
+   print(b)     --> Hello World
+   c = false
+   print(c)     --> false
+   d = {4, 5, 6}
+   print(d)     --> table: 0x8067d90
+                 (The reference is printed in this case)
+   print(d[2])  --> 5
+\end{verbatim}
+
+
+\subsection{Comments}
+A comment starts anywhere with a double hyphen (--)
+and runs until the end of the line. Lua also offers
+block comments, starting with {\tt --[[} and run till
+{\tt --]]}.
+\begin{verbatim}
+   -- This is a commented line
+
+   --[[
+      print(10)             --This is a commented block
+   --]]
+\end{verbatim}
+
+\subsection{For loops}
+\ttt{for} loops in Lua are stated by the following 
+structure.
+\begin{verbatim}
+   for var=start_value, end_value, increment do
+       do something
+   end
+\end{verbatim}
+The loop will execute \ttt{something} for each value
+of \ttt{var} from \ttt{start\_value} to \ttt{end\_value}
+with and increment of \ttt{increment}. If \ttt{increment}
+is absent, the increment will be assumed one. 
+
+An example for printing the numbers 1 through 10 is 
+presented below.  
+\begin{verbatim}
+for i=1,10 do
+  print(i)  
+end
+\end{verbatim}
+One remark that should be made is that in the example
+above the index $i$ is declared as a local variable.
+This implies that once the for loop is terminated the
+value of $i$ will not be retained and cannnot be referenced
+to.
+
+\subsection{If statements}
+\ttt{if} statements in Lua are defined by the following 
+structures.
+\begin{verbatim}
+   if condition_expression then
+      do something
+   end
+\end{verbatim}
+or,
+\begin{verbatim}
+   if condition_expression then
+      do something
+   else
+      do something else
+   end
+\end{verbatim}
+All other values other than \ttt{false} or \ttt{nil} that
+are returned by the \ttt{condition\_expression} will be 
+treated as \ttt{true}.
+
+An example code to print the larger of the value \ttt{a,b}
+is:
+\begin{verbatim}
+   if a > b then
+      print(a)
+   else
+      print(b)
+   end
+\end{verbatim}
+
+To avoid writing nested \ttt{if}s, one can use
+\ttt{elseif} in the following structure.
+\begin{verbatim}
+   if condition_expression then
+      do something
+   elseif condition_expression
+      do something else
+   else
+      do yet something else
+   end
+\end{verbatim}
+
+\subsection{Functions}
+A function in Lua is defined by the following 
+format.
+\begin{verbatim}
+   function function_name(input_arguments)
+      function_body
+   end
+\end{verbatim}
+
+The input arguments can any type of Lua variable,
+and when multiple values are passed, they must be 
+seperated by a comma. It is possible to assign
+no input arguments.
+
+\ttt{function\_body} will consist of the standard
+Lua chunks. For the function to return an output 
+value the \ttt{return} command must be placed.
+\begin{verbatim}
+   function function_name(input_arguments)
+      function_body
+      return output_arguments
+   end
+\end{verbatim}
+\ttt{output\_arguments} may return any type of Lua
+variable, and when multiple values are returned, they
+must be seperated by a comma.
+
+An example of a function which takes two numbers \ttt{a,b}
+as the input and returns their sum is 
+shown below.
+\begin{verbatim}
+   function add(a,b)
+
+      sum_ab = a + b
+
+      return sum_ab
+   end
+\end{verbatim} 
+The method of calling this function is the following.
+\begin{verbatim}
+   a = 4
+   b =-2.11
+   sum_ab = add(a,b)
+   print(sum_ab)      -> 1.89
+\end{verbatim}
+The function above can be modified to also return the difference
+by the following code.
+\begin{verbatim}
+   function add_diff(a,b)
+
+      sum_ab = a + b
+      diff_ab= a - b
+
+      return sum_ab, diff_ab
+   end
+\end{verbatim} 
+The method of calling this function is the following.
+\begin{verbatim}
+   a = 4
+   b =-2.11
+   sum_ab, diff_ab = add_diff(a,b)
+   print(sum_ab)      -> 1.89
+   print(diff_ab)     -> 6.11
+\end{verbatim}
+

@@ -1,0 +1,252 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "qarray.h"
+
+class QArray {
+    QArray(int m, int n, int type = 0, int base = 1);
+    ~QArray();
+
+    void   set(int i, int j, double xr, double xi = 0);
+    double get(int i, int j);
+    double geti(int i, int j);
+
+    void    wipe();
+    void    copy(QArray* A);
+    QArray* view(int i1, int i2, int j1, int j2);
+    QArray* clone();
+    QArray* transpose();
+    void    make_owner();
+
+    double normf();
+    void   print(char* fmt = NULL);
+    void   dump(const char* fname, char* fmt=NULL);
+
+    void   add(QArray* array);
+    void   sub(QArray* array);
+    void   add(double x);
+    void   sub(double x);
+    void   mul(double x);
+    void   div(double x);
+
+    int m();
+    int n();
+    int type();
+    int base();
+};
+
+$[
+
+function QArray:size()
+  return self:m(), self:n()
+end
+
+local index = QArray.__index
+local get   = QArray.get
+local set   = QArray.set
+local geti  = QArray.geti
+local clone = QArray.clone
+local trans = QArray.transpose
+local view  = QArray.view
+local add   = QArray.add
+local sub   = QArray.sub
+local mul   = QArray.mul
+local div   = QArray.div
+QArray.get  = nil
+QArray.geti = nil
+
+local function check_index(i,j, array)
+  local b,m,n = array:base(), array:size()
+  if not j then
+    if m == 1 then
+      i,j = b,i
+    else
+      j = b
+    end
+  end
+  assert(i >= b and i < m+b, 'Row index out of range')
+  assert(j >= b and j < n+b, 'Col index out of range')
+  return i,j
+end
+
+local function idx_to_ij(self, k)
+  local b,m,n = self:base(), self:size()
+  local i = b + mod(k-b,m)
+  local j = b + floor((k-b)/m)
+  assert(i >= b and i < m+b, 'Row index out of range')
+  assert(j >= b and j < n+b, 'Col index out of range')
+  return i,j
+end
+
+local function same_size(a,b)
+  local m1,n1 = a:size()
+  local m2,n2 = b:size()
+  assert(m1 == m2 and n1 == n2, 'Array size mismatch')
+end
+
+function QArray:__index(k)
+  if type(k) == 'number' then
+    local i,j = idx_to_ij(self,k)
+    return get(self,i,j), geti(self,i,j)
+  else
+    return index(self,k)
+  end
+end
+
+function QArray:__newindex(k,v)
+  local i,j = idx_to_ij(self,k)
+  if type(v) == 'table' then
+    local vr = v[1] or v.r or v.real;
+    local vi = v[2] or v.i or v.imag;
+    set(self,i,j,vr,vi)
+  else
+    set(self,i,j,v,0)
+  end
+end
+
+function QArray:__call(i,j)
+  i,j = check_index(i,j, self)
+  if self:type() == 0 then
+    return get(self,i,j)
+  else
+    return get(self,i,j), geti(self,i,j)
+  end
+end
+
+function QArray.__add(x,y)
+  local z = nil
+  if type(x) == 'number' then
+    z = y:clone()
+    z:add(x)
+  else
+    z = x:clone()
+    z:add(y)
+  end
+  return z
+end
+
+function QArray.__sub(x,y)
+  local z = nil
+  if type(x) == 'number' then
+    z = y:clone()
+    z:mul(-1)
+    z:add(x)
+  else
+    z = x:clone()
+    z:sub(y)
+  end
+  return z
+end
+
+function QArray.__mul(x,y)
+  local z = nil
+  if type(x) == 'number' then
+    z = y:clone()
+    z:mul(x)
+  else
+    z = x:clone()
+    z:mul(y)
+  end
+  return z
+end
+
+function QArray.__div(x,y)
+  local z = nil
+  if type(y) == 'number' then
+    z = x:clone()
+    z:div(y)
+  else
+    error('Only scalar division allowed');
+  end
+  return z
+end
+
+function QArray:add(x)
+  if tolua.type(x) == 'QArray' then
+    same_size(self,x)
+  end
+  add(self,x)
+end
+
+function QArray:sub(x)
+  if tolua.type(x) == 'QArray' then
+    same_size(self,x)
+  end
+  sub(self,x)
+end
+
+function QArray:set(i,j, xr,xi)
+  xi = xi or 0
+  i,j = check_index(i,j, self)
+  set(self,i,j,xr,xi)
+end
+
+function QArray:clone()
+  local myclone = clone(self)
+  tolua.takeownership(myclone)
+  return myclone
+end
+
+function QArray:transpose()
+  local mytrans = trans(self)
+  tolua.takeownership(mytrans)
+  return mytrans
+end
+
+function QArray:view(i1,i2,j1,j2)
+  local b,m,n = self:base(), self:size()
+  if not j1 then
+    if m == 1 then
+      i1,i2,j1,j2 = 1,1,i1,i2
+    elseif n == 1 then
+      i1,i2,j1,j2 = i1,i2,1,1
+    else
+      error('Out-of-range subscript')
+    end
+  end
+  assert(i1 >= b and i2 >= i1 and i2-b < m, 'Invalid row range')
+  assert(j1 >= b and j2 >= j1 and j2-b < n, 'Invalid col range')
+  local myview = view(self,i1,i2,j1,j2)
+  tolua.takeownership(myview)
+  return myview
+end
+
+function zeros(m,n)
+  local a = QArray:new(m, n or m)
+  tolua.takeownership(a)
+  return a
+end
+
+function eye(n)
+  local a = QArray:new(n,n)
+  tolua.takeownership(a)
+  for j = 1,n do
+    a:set(j,j,1)
+  end
+  return a
+end
+
+function todense(A)
+  if tolua.type(A) == 'QArray' then
+    return A
+  elseif tolua.type(A) == 'QIArray' then
+    local m,n,b = A:size(), A:base()
+    local Adouble = QArray:new(m,n,0,b)
+    for j = 0,m*n-1 do
+      Adouble[j+b] = A[j+b]
+    end
+    return Adouble
+  elseif tolua.type(A) == 'CSCMatrix' then
+    local I = eye(A:get_n())
+    return A:apply(I)
+  elseif tolua.type(A) == 'number' then
+    local x = QArray:new(1,1)
+    x[1] = A
+    return x
+  else
+    error('Argument to dense() must be a number or a matrix')
+  end
+end
+
+$]

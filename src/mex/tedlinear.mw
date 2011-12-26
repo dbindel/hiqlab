@@ -1,0 +1,82 @@
+$[
+#include <mex.h>
+#include "tedlinear.h"
+#include "cscmatrix.h"
+
+
+mxArray* ted_assemble1(Mesh* mesh, double T0, double cT,
+                       dcomplex ca, dcomplex cb)
+{
+    int n  = mesh->get_numid();
+    int nm = ted_block_mesh(mesh);
+    CoordMatrix coordAB(nm+n);
+    ted_assemble(&coordAB, mesh, T0, cT, ca, cb);
+
+    coordAB.pack();
+    int nn  = coordAB.get_N();
+    int nnz = coordAB.get_ncoord();
+    mxArray* A = mxCreateSparse(nn, nn, nnz, mxCOMPLEX);
+    coordAB.to_sparse(mxGetJc(A), mxGetIr(A), mxGetPr(A), mxGetPi(A));
+    return A;
+}
+
+$]
+
+
+@function n = ted_block_mesh(m)
+% Relabel the nodal degrees of freedom so that all mechanical degrees of
+% freedom come first, followed by all thermal degrees of freedom.  Return
+% the total number of mechanical degrees of freedom.
+# int n = ted_block_mesh(Mesh* m);
+
+
+@function K = ted_assemble(m, T0, cT, ca, cb)
+% Assemble ca*A + cb*B, where A and B are the matrices in the
+% linearization of the coupled thermoelastic equations.
+%
+% If T0 == 0, then use the basic linearization
+%
+%   B = [ Muu, 0,   0,
+%         0,   Muu, 0,
+%         0,   0,   Ctt ];
+%
+%   A = [ 0,  -Muu, 0,
+%         Kuu, 0,   Kut,
+%         0,   Ctu, Ktt ];
+%
+% else use a symmetrized linearization
+%
+%   B = [-Kuu, 0,   0,
+%         0,   Muu, 0,
+%         0,   0,  -Ctt/T0 ];
+%
+%   A = [ 0,    Kuu,     0,
+%         Kuu,  0,       Kut,
+%         0,   -Ctu/T0, -Ktt/T0 ];
+%
+%   where Kut = -Ctu.'/T0 (assuming T0 is the same temp used
+%   as a reference temperature).
+
+# mxArray K = ted_assemble1(Mesh* m, double T0, double cT,
+#                           dcomplex ca, dcomplex cb);
+
+
+@function [d,v] = ted_compute_eigs(m, w0, T0, cT, nev, ncv);
+% You probably should not call this function directly!  Use ted_mode.
+
+n = Mesh_get_numid(m);
+# ted_compute_eigs(Mesh* m, double w0, double T0, double cT,
+#                  int nev, int ncv,
+#                  output dcomplex[nev] d, output dcomplex[n,nev] v);
+d = d(1:nev);
+v = v(:,1:nev);
+
+
+@function [d,v] = ted_compute_eigsp(m, w0, nev, ncv)
+% You probably should not call this function directly!  Use ted_mode.
+
+n = Mesh_get_numid(m);
+# ted_compute_eigsp(Mesh* m, double w0, int nev, int ncv,
+#                   output dcomplex[nev] d, output dcomplex[n,nev] v);
+d = d(1:nev);
+v = v(:,1:nev);

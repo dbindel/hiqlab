@@ -1,0 +1,40 @@
+\contentsline {chapter}{\numberline {1}Core libraries}{2}
+\contentsline {section}{\numberline {1.1}Mesh objects}{2}
+\contentsline {subsection}{\numberline {1.1.1}Mesh internal data structures}{2}
+\contentsline {subsubsection}{Node positions and connectivity}{2}
+\contentsline {subsubsection}{Element data}{2}
+\contentsline {subsubsection}{Variable assignments}{2}
+\contentsline {subsubsection}{Boundary conditions}{3}
+\contentsline {subsubsection}{System state}{3}
+\contentsline {subsubsection}{History database}{3}
+\contentsline {subsubsection}{Scaling data}{3}
+\contentsline {subsubsection}{Lua interpreter}{3}
+\contentsline {subsection}{\numberline {1.1.2}Accessor functions}{4}
+\contentsline {subsection}{\numberline {1.1.3}Mesh declarations}{4}
+\contentsline {subsection}{\numberline {1.1.4}Mesh construction, destruction, and memory management}{8}
+\contentsline {subsection}{\numberline {1.1.5}Mesh scale management}{9}
+\contentsline {subsection}{\numberline {1.1.6}Basic mesh generation}{10}
+\contentsline {subsection}{\numberline {1.1.7}Block mesh generation}{11}
+\contentsline {subsection}{\numberline {1.1.8}Tied meshes}{13}
+\contentsline {subsection}{\numberline {1.1.9}Removing redundant nodes}{15}
+\contentsline {subsection}{\numberline {1.1.10}Initialization}{17}
+\contentsline {subsection}{\numberline {1.1.11}Assigning reduced indices}{19}
+\contentsline {subsection}{\numberline {1.1.12}Assembly loops}{20}
+\contentsline {subsection}{\numberline {1.1.13}Boundary condition manipulations}{21}
+\contentsline {subsection}{\numberline {1.1.14}Setting up time-harmonic analysis}{23}
+\contentsline {subsection}{\numberline {1.1.15}Lua accessors}{23}
+\contentsline {subsection}{\numberline {1.1.16}Setting and getting {\tt U, V, A, F}}{24}
+\contentsline {subsection}{\numberline {1.1.17}Lua support methods}{25}
+\contentsline {section}{\numberline {1.2}Element interface}{25}
+\contentsline {subsection}{\numberline {1.2.1}Variable slots}{26}
+\contentsline {subsection}{\numberline {1.2.2}Element declarations}{26}
+\contentsline {subsection}{\numberline {1.2.3}Element construction and destruction}{27}
+\contentsline {subsection}{\numberline {1.2.4}Element initialization}{28}
+\contentsline {subsection}{\numberline {1.2.5}Allocating variables}{28}
+\contentsline {subsection}{\numberline {1.2.6}Assembling the residual and tangent}{29}
+\contentsline {subsection}{\numberline {1.2.7}Lumped $L^2$ projections}{29}
+\contentsline {subsection}{\numberline {1.2.8}Gauss point quantities}{30}
+\contentsline {subsection}{\numberline {1.2.9}Counting the number of ID slots in use}{30}
+\contentsline {subsection}{\numberline {1.2.10}Transferring data from global arrays}{31}
+\contentsline {subsection}{\numberline {1.2.11}Assembling data from global arrays}{32}
+\contentsline {section}{\numberline {1.3}Evaluating fields}{33}

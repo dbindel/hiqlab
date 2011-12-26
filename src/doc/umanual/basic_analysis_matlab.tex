@@ -1,0 +1,697 @@
+\newpage
+\section{Basic functions (Matlab)}
+
+\subsection{Loading and deleting Lua mesh input files}
+The Lua object interface is used in the MATLAB \ttt{Mesh\_load}
+function:
+\begin{codelist}
+
+  \item[Mesh\_load(filename,p)]
+    Creates a Lua interpreter and executes the named file in order to
+    generate a mesh object (which is returned).  The mesh should be
+    named ``mesh''; if such an object is undefined on output,
+    \ttt{Mesh\_load} returns an error message.  Before executing
+    the named file, \ttt{Mesh\_load} copies the entries of the
+    structure \ttt{p}, which may only be strings or doubles, into
+    the Lua global state; in this way, it is possible to vary mesh
+    parameters from MATLAB.
+
+  \item[Mesh\_delete(mesh)]
+    Deletes the mesh object.
+
+\end{codelist}
+
+\subsection{Getting Scaling parameters}
+\begin{codelist}
+
+  \item[scale\_param = Mesh\_get\_scale(scale\_name)]
+  Get a characteristic scale described by the given name.
+
+  \item[{[cu,cf]} = Mesh\_get\_scales(mesh)]
+  Return an array of dimensional scales for the problem.
+\begin{verbatim}
+  Outputs:
+   cu - scales for the primary variables
+   cf - scales for the secondary (flux) variables
+\end{verbatim}
+
+\end{codelist}
+
+\subsection{Obtain basic information about mesh}
+\begin{codelist}
+
+  \item[ndm = Mesh\_get\_ndm(mesh)]
+  Return the dimension of the ambient space for the mesh.
+
+  \item[numnp = Mesh\_numnp(mesh)]
+  Return the number of nodal points in the mesh.
+
+  \item[ndf = Mesh\_get\_ndf(mesh)]
+  Return the number of degrees of freedom per node in the mesh.
+
+  \item[numid = Mesh\_get\_numid(mesh)]
+  Return the total number of degrees of freedom in the mesh.
+
+  \item[numelt = Mesh\_numelt(mesh)]
+  Return the number of elements in the mesh.
+
+  \item[nen = Mesh\_get\_nen(mesh)]
+  Return the maximum number of nodes per element.
+
+  \item[numglobals = Mesh\_numglobals(mesh)]
+  Return the number of global degrees of freedom in the mesh
+
+  \item[nbranch\_id = Mesh\_nbranch\_id(mesh)]
+  Return the number of branch variables in the mesh
+
+  \item[x = Mesh\_get\_x(mesh, (cL))]
+  Return an ndm-by-numnp array of node positions.
+\begin{verbatim}
+  Inputs:
+  cL - characteristic length used for redimensionalization
+        (default: mesh 'L' scale)
+\end{verbatim}
+
+  \item[e = Mesh\_get\_e(mesh)]
+  Return the element connectivity array (a maxnen-by-numelt array).
+
+  \item[id = Mesh\_get\_id(mesh)]
+  Return the variable-to-identifier mapping (a maxndf-by-numnp array).
+  Nodal variables subject to displacement BCs are represented by a 0.
+
+  \item[bc = Mesh\_get\_bc(mesh)]
+  Return an ndf-by-numnp array of boundary codes.  The codes are
+\begin{verbatim}
+  0 - No boundary condition for this dof
+  1 - Displacement (essential) boundary conditions
+  2 - Flux (natural) boundary conditions
+\end{verbatim}
+
+  \item[{[p,e,id,bc,numnp]} = Mesh\_get\_parameters(mesh,(cL))]
+\begin{verbatim}
+  Input:
+  cL    - characteristic length to redim node positions
+          (default: mesh 'L' parameter)
+  Return mesh parameters:
+  p     - Node position array
+  e     - Element connectivity array (nen-by-numelt)
+  id    - Variable identifier array (ndf-by-numnp)
+  bc    - Boundary condition codes (see Mesh\_get\_bc)
+  numnp - Number of nodal points
+\end{verbatim}
+
+\end{codelist}
+
+\subsection{Obtain particular information about ids}
+\begin{codelist}
+
+  \item[ix = Mesh\_ix(mesh,i,j)]
+  Return the ith node of element j
+
+  \item[id = Mesh\_id(mesh,i,j)]
+  Return the ith variable of node j
+
+  \item[id = Mesh\_branchid(mesh,i,j)]
+  Return the ith variable of branch j
+
+  \item[id = Mesh\_globalid(mesh,j)]
+  Return the id for jth global variable
+
+  \item[nbranch\_id = Mesh\_nbranch\_id(mesh,j)]
+  Return the number of variables of branch j
+
+\end{codelist}
+
+\subsection{Obtain particular information about id, nodes, or elements}
+\begin{codelist}
+
+  \item[x = Mesh\_x(mesh,i,j,(cL))]
+  Return the ith coordinate of node j.
+\begin{verbatim}
+  Inputs:
+   i  - coordinate index
+   j  - node number
+   cL - characteristic length scale for redimensionalization
+        (default: mesh 'L' scale)
+\end{verbatim}
+
+  \item[nen = Mesh\_get\_nen\_elt(mesh,j)]
+  Return the number of nodes for element j
+
+\end{codelist}
+
+\subsection{Getting displacements and force}
+\begin{codelist}
+
+  \item[{[u]} = Mesh\_get\_disp(mesh,is\_dim)]
+  Get the node displacement array (dimensionless)
+\begin{verbatim}
+  Inputs:
+   - is\_dim - should the vector be redimensionalized? (default: 1)
+\end{verbatim}
+
+  \item[{[f]} = Mesh\_get\_force(mesh,is\_dim)]
+  Get the node force array (dimensionless)
+\begin{verbatim}
+  Inputs:
+   - is\_dim - should the vector be redimensionalized? (default: 1)
+\end{verbatim}
+
+  \item[{[u]} = Mesh\_get\_u(mesh, cx, cv, ca, reduced, is\_dim)]
+  Get the node displacement array (dimensionless)
+\begin{verbatim}
+  Inputs:
+   - cx  For variables (default: 1)
+   - cv  For 1st derivative variables
+   - ca  For 2nd derivative variables
+   - reduced or not?
+\end{verbatim}
+
+  \item[Mesh\_set\_u(mesh, u, v, a)]
+  Set the displacement, velocity, and acceleration vectors.
+  The vectors should be in dimensionless form.
+\begin{verbatim}
+  Inputs:
+   u - displacement vector (or zero or no arg to clear the mesh u)
+   v - velocity vector     (or zero or no arg to clear the mesh v)
+   a - acceleration vector (or zero or no arg to clear the mesh a)
+\end{verbatim}
+
+\end{codelist}
+
+
+\subsection{Functions to form global matrices}
+\begin{codelist}
+
+  \item[{[K]} = Mesh\_assemble\_k(mesh)]
+  Assemble the stiffness matrix for the mesh.
+  Matrix is in dimensionless form.
+
+  \item[{[M,K]} = Mesh\_assemble\_mk(mesh)]
+  Assemble the mass and stiffness matrices for the mesh.
+  Matrices are in dimensionless form.
+
+  \item[{[M,K,C]} = Mesh\_assemble\_mkc(mesh)]
+  Assemble the mass, stiffness, and damping matrices.
+  Matrices are in dimensionless form.
+
+  \item[{[K]} = Mesh\_assemble\_dR(mesh, cx, cv, ca, reduced)]
+  Assembles mass, damping, or stiffness matrix from mesh.
+\begin{verbatim}
+  If 'reduced' is given     -'reduced=1' Reduced form
+                           -'reduced=0' Non-reduced form
+\end{verbatim}
+  Matrices are in dimensionless form.
+
+  \item[[K] = Mesh\_element\_dR(mesh, eltid, cx, cv, ca)]
+  Gets scattered mass, damping, or stiffness matrix from mesh element.
+  Matrices are in dimensionless form.
+
+  \item[{[R,Ri] = Mesh\_assemble\_R(mesh)}]
+  Assemble the system residual vector and return it in R and Ri.
+  The residual vector is in dimensionless form.
+\begin{verbatim}
+  Outputs:
+    R  - real part of the residual vector
+    Ri - imag part of the residual vector
+\end{verbatim}
+
+\end{codelist}
+
+\subsection{Other useful functions}
+\begin{codelist}
+  \item[ E = Mesh\_mean\_power(mesh)]
+  Compute the time-averaged energy flux at each node.
+  TODO: The flux is currently in dimensionless form, but it probably
+   shouldn't be.
+
+  \item[f = Mesh\_get\_lua\_fields(mesh, name, nfields)]
+  Return an array of field values.
+\begin{verbatim}
+  Inputs:
+   name      - the name of the Lua function to define the fields
+   nfields   - number of fields requested
+\end{verbatim}
+
+  \item[Mesh\_make\_harmonic(mesh,omega)]
+  Set v = i*omega*u and a = -omega**2*u
+\begin{verbatim}
+  Input:
+   omega - forcing frequency
+   units - specify units of forcing frequency (default 'rs'):
+     'hz': omega is in units of Hz
+     'rs': omega is in units of rad/s
+     'nd': omega is in dimensionless units
+      cT : nondimensionalize omega using the given characteristic time
+\end{verbatim}
+
+\end{codelist}
+
+\subsection{Assigning and reassigning ids}
+\begin{codelist}
+  \item[int = Mesh\_assign\_ids(mesh)]
+  Number the degrees of freedom in the mesh.
+  Returns the total number of dofs.
+
+  \item[int = ted\_block\_mesh(mesh)]
+  Relabel the nodal degrees of freedom so that all mechanical degrees of
+  freedom come first, followed by all thermal degrees of freedom.  Return
+  the total number of mechanical degrees of freedom.
+
+  \item[int = pz\_block\_mesh(mesh)]
+  Relabel the nodal degrees of freedom so that all mechanical degrees of
+  freedom come first, followed by all potential degrees of freedom.  Return
+  the total number of mechanical degrees of freedom.
+
+\end{codelist}
+
+\subsection{Producing forcing and sensing pattern vectors}
+\begin{codelist}
+
+  \item[u = Mesh\_get\_sense\_u(mesh, name, is\_reduced)]
+  Return a vector for a displacement sense pattern.
+  The vector is in dimensionless form.
+\begin{verbatim}
+  Inputs:
+    name       - the name of the Lua function to define the pattern
+   is\_reduced - do we want the reduced (vs full) vector?  Default: 1
+\end{verbatim}
+
+  \item[u = Mesh\_get\_sense\_disp(mesh, name, is\_reduced)]
+  Return a vector for a displacement sense pattern.
+  The vector is in dimension form.
+\begin{verbatim}
+  Inputs:
+   name       - the name of the Lua function to define the pattern
+   is\_reduced - do we want the reduced (vs full) vector?  Default: 1
+\end{verbatim}
+
+  \item[f = Mesh\_get\_sense\_f(mesh, name, is\_reduced)]
+  Return a vector for a force sense pattern
+  The vector is in dimensionless form.
+\begin{verbatim}
+  Inputs:
+   name       - the name of the Lua function to define the pattern
+   is\_reduced - do we want the reduced (vs full) vector?  Default: 1
+\end{verbatim}
+
+  \item[f = Mesh\_get\_drive\_f(mesh, name, is\_reduced)]
+  Return a vector for a drive sense pattern
+  The vector is in dimensionless form.
+\begin{verbatim}
+  Inputs:
+   name       - the name of the Lua function to define the pattern
+   is\_reduced - do we want the reduced (vs full) vector?  Default: 1
+\end{verbatim}
+
+  \item[f = Mesh\_get\_sense\_force(mesh, name, is\_reduced)]
+  Return a vector for a force sense pattern
+  The vector is in dimension form.
+\begin{verbatim}
+  Inputs:
+   name       - the name of the Lua function to define the pattern
+   is\_reduced - do we want the reduced (vs full) vector?  Default: 1
+\end{verbatim}
+
+  \item[u = Mesh\_get\_sense\_globals\_u(mesh, name)]
+  Return a vector for a global variable displacement sense pattern.
+  The vector is in dimensionless form.
+\begin{verbatim}
+  Inputs:
+    name       - the name of the Lua function to define the pattern
+\end{verbatim}
+
+  \item[f = Mesh\_get\_sense\_globals\_f(mesh, name)]
+  Return a vector for a global variable force sense pattern.
+  The vector is in dimensionless form.
+\begin{verbatim}
+  Inputs:
+    name       - the name of the Lua function to define the pattern
+\end{verbatim}
+
+  \item[f = Mesh\_get\_drive\_globals\_f(mesh, name)]
+  Return a vector for a global variable force drive pattern.
+  The vector is in dimensionless form.
+\begin{verbatim}
+  Inputs:
+    name       - the name of the Lua function to define the pattern
+\end{verbatim}
+
+  \item[u = Mesh\_get\_sense\_elements\_u(mesh, name)]
+  Return a vector for an element variable displacement sense pattern.
+  The vector is in dimensionless form.
+\begin{verbatim}
+  Inputs:
+    name       - the name of the Lua function to define the pattern
+\end{verbatim}
+
+  \item[f = Mesh\_get\_sense\_elements\_f(mesh, name)]
+  Return a vector for an element variable force sense pattern.
+  The vector is in dimensionless form.
+\begin{verbatim}
+  Inputs:
+    name       - the name of the Lua function to define the pattern
+\end{verbatim}
+
+  \item[f = Mesh\_get\_drive\_elements\_f(mesh, name)]
+  Return a vector for an element variable force drive pattern.
+  The vector is in dimensionless form.
+\begin{verbatim}
+  Inputs:
+    name       - the name of the Lua function to define the pattern
+\end{verbatim}
+
+\end{codelist}
+
+\subsection{Getting and setting variables in the Lua environment}
+\begin{codelist}
+
+  \item[Lua\_set\_string(L, string\_name, string\_value)]
+  Set a string variable in the Lua environment
+\begin{verbatim}
+  L            - the Lua interpreter object
+  string\_name - the name of the Lua variable(must be string)
+  s    - a string value(must be string)
+\end{verbatim}
+
+  \item[string = Lua\_get\_string(L, string\_name)]
+  Get a string variable out of the Lua environment
+\begin{verbatim}
+  L    - the Lua interpreter object.
+  name - the name of the Lua variable.
+\end{verbatim}
+  Returns an empty string if no such variable exists.
+
+  \item[Lua\_set\_double(L, double\_name, double\_value)]
+  Set a numeric variable in the Lua environment
+\begin{verbatim}
+  L    - the Lua interpreter object
+  name - the name of the Lua variable
+  x    - a number
+\end{verbatim}
+
+  \item[{[x]} = Lua\_get\_double(L, name)]
+  Get a numeric variable out of the Lua environment
+\begin{verbatim}
+  x  - the value of the Lua variable   
+\end{verbatim}
+
+  \item[Lua\_set\_table\_double(L, table\_name, double\_name, double\_value x)]
+  Set a numeric variable in a table in the Lua environment
+\begin{verbatim}
+  L     - the Lua interpreter object
+  table\_name  - the name of the Lua table
+  double\_name - the name of the Lua key
+  double\_value- a number
+\end{verbatim}
+  key can be a number or a string.
+
+  \item[{[x]} = Lua\_get\_table\_double(L, table\_name, double\_name)]
+  Get a numeric variable out of a table in the Lua environment
+\begin{verbatim}
+  x  - the value of the Lua variable   
+\end{verbatim}
+  key can be a number or a string.
+
+  \item[Lua\_set\_table\_string(L, table\_name, string\_name, string\_value)]
+  Set a string variable in a table in the Lua environment
+\begin{verbatim}
+  L     - the Lua interpreter object
+  table\_name  - the name of the Lua table
+  string\_name - the name of the Lua key
+  string\_value- a number
+\end{verbatim}
+  key can be a number or a string.
+
+  \item[{[s]} = Lua\_get\_table\_string(L, table\_name, string\_name)]
+  Get a string variable out of a table in the Lua environment
+\begin{verbatim}
+  s  - the string value of the Lua variable   
+\end{verbatim}
+  key can be a number or a string.
+
+  \item[Lua\_set\_array(L, aname, array, a\_type)]
+  Set a matrix variable in the Lua environment
+\begin{verbatim}
+  Input:
+   L        - the Lua interpreter object
+   aname    - the name of the matrix variable
+   array    - a numeric array
+   a\_type(0)- the type of array to construct
+             0: Real array
+             1: Real array of twice the size
+                 (Not supported yet)
+             2: Complex array
+\end{verbatim}
+
+  \item[{[m\_Object]} = Lua\_get\_array(L, name)]
+  Get a matrix variable from the Lua environment
+\begin{verbatim}
+  Input:
+  L     - the Lua interpreter object
+  name  - the name of the Lua variable
+\end{verbatim}
+
+\end{codelist}
+
+\subsection{Manipulating the Lua environment}
+The same interfaces that are automatically bound to Lua are also
+automatically bound to MATLAB.  In addition, several methods are
+defined which allow MATLAB to manipulate a Lua interpreter:
+\begin{codelist}
+
+  \item[Lua\_open]      
+    Return a pointer to a new Lua interpreter \ttt{L}
+
+  \item[Lua\_close(L)]  
+    Close the Lua interpreter
+
+  \item[Lua\_dofile(L,filename)]
+    Execute a Lua file
+
+  \item[Lua\_set\_mesh(L,name,mesh)]
+    Assign a mesh object to a Lua global
+
+  \item[Lua\_get\_mesh(L,name)]
+    Retrieve a mesh object from a Lua global
+
+\end{codelist}
+
+\clearpage
+\section{Functions for analysis(MATLAB)}
+\subsection{Static analysis}
+  Solves for the static state of a device. The equation,
+\begin{eqnarray}
+  \bfR(\bfU) = 0
+\end{eqnarray}
+  for the general case, and 
+\begin{eqnarray}
+\bfK\bfU = \bfF
+\end{eqnarray}
+  for the linear case is solved. 
+
+\begin{codelist}
+
+  \item[static\_state(mesh,opt)]
+  Solves for the static state. If the field nonlinear is 
+  not specified only 1 iteration will be conducted.
+\begin{verbatim}
+ Input: mesh  - Mesh object
+       *opt
+         nonlinear('NR')- Conduct non-linear solve
+                       'NR' :Newton-Raphson
+                       'MNR':Modified-Newton-Raphson
+         kmax(20)      - Max number of iterations
+         du_tol(1e-15) - Tolerance for convergence
+                         for increment
+         R_tol (1e-15) - Tolerance for convergence
+                         for residual
+         U             - Initial starting vector for solve
+\end{verbatim}
+
+\end{codelist}
+
+\subsection{Time-harmonic analysis}
+Solves for the time harmonic state.
+\begin{eqnarray}
+\left(\bfK + i\omega \bfC - \omega^2\bfM\right)\bfu = \bfF
+\end{eqnarray}
+
+\begin{codelist}
+
+ \item[harmonic\_state(mesh,F,w,opt)]
+ Solves for the time-harmonic state.
+\begin{verbatim}
+ Input: mesh     - Mesh object
+        F        - Forcing vector(in nondimensional form)
+        w        - Forcing frequency
+       *opt
+         mkc(0)        - Include damping matrix
+         kmax(1)       - Max number of iterations
+         du_tol(1e-15) - Tolerance for convergence
+                        for increment
+         R_tol(1e-15)  - Tolerance for convergence
+                        for residual
+\end{verbatim}
+
+\end{codelist}
+
+\clearpage
+\subsection{Modal analysis}
+The MATLAB sparse eigensolver routine \ttt{eigs} is actually an
+interface to ARPACK (see Section~\ref{section-eigs}).  We express all
+frequencies in radians/s rather than Hertz.  We provide one function
+to compute complex frequencies and associated mode shapes for PML
+eigenvalue problems:
+\begin{codelist}
+
+  \item[{[V,w,Q]} = pml\_mode(M,K,w0,nmodes,opt)]
+    Find the requested number of modes closest in frequency to
+    \ttt{w0}.  Return an array of mode shapes, a vector of complex
+    frequencies, and a vector of $Q$ values.  Options are 
+    \begin{codelist}[use\_umfpack]
+      \item[use\_matlab]  Use MATLAB's eigs rather than ARPACK?
+      (default: false)
+      \item[use\_umfpack]  Use UMFPACK with MATLAB eigs, if present?
+      (default: true)
+      \item[disp]  Verbosity level? (default: 0)
+    \end{codelist}
+
+   \item[{[V,w,Q]} = tedmode(mesh, w0, nev, opt)]
+   Computes the eigenfrequencies and modes of a thermoelastic problem.
+\begin{verbatim}
+
+ Compute nev complex frequencies w (in rad/s) near target frequency
+ w0, and also associated Q values.  V contains the eigenvectors
+ (mechanical and thermal parts).
+
+ *Note*: tedmode will reorder the degrees of freedom in the mesh.
+
+ opt   contains optional parameters:
+   mech - Conduct purely mechanical analysis
+   type - Use a perturbation method ('pert') or linearization
+          ('full').  Default is 'full'.
+   T0   - Baseline temperature for use in symmetric linearization
+   cT   - Characteristic time scale for redimensionalization
+          (Default: Mesh_get_scale('T')
+   use_matlab - use matlab eigs or not (Default:0)
+\end{verbatim}
+
+   \item[{[V,w,Q]} = emmode(mesh, w0, nev, opt)]
+   Computes the eigenfrequencies and modes of a electromechanical problem.
+\begin{verbatim}
+ Compute nev complex frequencies w (in rad/s) near target frequency
+ w0, and also associated Q values.  V contains the eigenvectors
+
+
+ opt   contains optional parameters:
+   mech - Conduct purely mechanical analysis
+   type - Use a perturbation method ('pert') or linearization
+          ('full').  Default is 'full'.
+   cT   - Characteristic time scale for redimensionalization
+          (Default: Mesh_get_scale('T')
+   use_matlab - use matlab eigs or not (Default:1)
+   idg_m - array of global numbers for mechanical variables
+   idg_p - array of global numbers for potential variables
+
+\end{verbatim}
+
+   \item[{[V,w,Q]} = emcmode(mesh, w0, nev, opt)]
+   Computes the eigenfrequencies and modes of a electromechanical problem with 
+   surrounding circuitry.
+\begin{verbatim}
+ Compute nev complex frequencies w (in rad/s) near target frequency
+ w0, and also associated Q values.  V contains the eigenvectors
+
+
+ opt must contain following parameters
+   eno - array of element numbers for electrodes
+   idg - array of global number for driving electrode
+
+ opt   contains optional parameters:
+   mech - Conduct purely mechanical analysis
+   type - Use a perturbation method ('pert') or linearization
+          ('full').  Default is 'full'.
+   cT   - Characteristic time scale for redimensionalization
+          (Default: Mesh_get_scale('T')
+   use_matlab - use matlab eigs or not (Default:1)
+
+\end{verbatim}
+
+\end{codelist}
+
+\clearpage
+\subsection{Transfer function evaluation}
+\begin{codelist}
+
+  \item[{[H,freq]} = second\_order\_bode(mesh,wc,drive\_pat,sense\_pat,opt)]
+  Computes the transfer function given the driving pattern and sensing pattern.
+  The frequency range is set by specifying the center frequency \ttt{wc} and
+  the range. Model reduction can be conducted by specifying the number of iterations
+  \ttt{kmax} conducted to produce the reduced order model. Different projection 
+  bases can also be selected.
+\begin{verbatim}
+
+   Output: freq          - Frequency array [rad/s]
+           H             - Output
+   Input:  mesh          - the mesh input
+           wc            - center frequency[rad/s]
+           drive_pat     - Driving pattern vector
+           sense_pat     - Sensing pattern vector
+          *opt
+          -freq          - Predefined array of freq
+          -mkc(0)        - Include damping or not
+          -cT            - Characteristic time scale for
+                           redimensionalization
+                           (Default: Mesh_get_scale('T')
+          -wr_min(0.90)  - left  value mag of bode plot
+          -wr_max(1.10)  - right value mag of bode plot
+          -w_ndiv(50)    - number divisions in bode plot
+          -w_type('lin') - division type (linspae or logspace)
+          -kmax(0)       - number of arnoldi iterations
+          -realbasis(0)  - use real basis??
+          -structurep(0) - use structure preserving basis??
+          -use_umfpack   - use UMFPACK?? (Default: use if exist)
+ If kmax and wc are given, use model reduction via an Arnoldi
+ expansion about the shift w0.  
+\end{verbatim}
+
+\end{codelist}
+
+\subsection{Model reduction}
+There is currently one model reduction routine in the MATLAB support
+files for \hiq.  As before, all frequencies are expressed in radians/s
+rather than Hz.
+\begin{codelist}
+
+  \item[{[Mk,Dk,Kk,Lk,Bk,Vk]} = rom\_arnoldi(M,K,l,b,kk,w0,opt)] 
+    Takes \ttt{kk} steps of
+    shift-and-invert Arnoldi to form a basis for the Krylov subspace
+    $\mathcal{K}_k\left( (K-(2 \pi \omega_0)^2 M)^{-1} M, b \right)$
+    in order to form a reduced system to estimate the system transfer
+    function.  Returns reduced matrices $M_k$, $K_k$, $l_k$, and
+    $b_k$, along with the projection basis $V_k$.  If
+    \ttt{opt.realbasis} is set to true (default is false), then the
+    projection will use a real basis for the span of $[\Re(V_k),
+    \Im(V_k)]$.  To do this, the matrix $[\Re(V_k), \Im(V_k)]$ will be
+    orthonormalized using an SVD, and vectors corresponding to values
+    less than \ttt{opt.realtol} (default $10^{-8}$) will be dropped.
+
+   \item[{[Mk,Dk,Kk,Lk,Bk,Vk]} = rom\_soar(M,D,K,L,B,kk,w0,opt)]
+    Takes \ttt{kk} steps of 
+    shift-and-invert SOAR to form a basis for the second order 
+    Krylov subspace,
+    in order to form a reduced system to estimate the system transfer
+    function.  Returns reduced matrices $M_k$, $K_k$, $l_k$, and
+    $b_k$, along with the projection basis $V_k$.  If
+    \ttt{opt.realbasis} is set to true (default is false), then the
+    projection will use a real basis for the span of $[\Re(V_k),
+    \Im(V_k)]$.  To do this, the matrix $[\Re(V_k), \Im(V_k)]$ will be
+    orthonormalized using an SVD, and vectors corresponding to values
+    less than \ttt{opt.realtol} (default $10^{-8}$) will be dropped.
+    To form the structure preserving base for the thermoelastic problem,
+    the id array must be reordered so that the mechanical dofs come first
+    before the thermal dofs. \ttt{opt.structurep} must be set to 1, and 
+    the number of mechanical degrees of freedom must also be specified.
+
+\end{codelist}

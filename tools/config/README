@@ -1,0 +1,6 @@
+
+README               - this file
+parmetis-make.inc.in - template for ParMetis-3.1 make.inc file
+superlu-make.inc.in  - template for SuperLU 3.0 make.inc file
+petsc-conf.in        - template for PETSc configuration file
+trilinos-conf.in     - template for Trilinos configuration file

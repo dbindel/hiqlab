@@ -1,0 +1,223 @@
+$[
+#include <stdio.h>
+#include <complex>
+typedef std::complex<double> dcomplex;
+
+void writemesh(FILE* fp, double* x, int numnp,
+               int* ix, int numelt, int nshape)
+{
+    int i;
+    fprintf(fp, "mesh\n%d %d %d\n", numnp, numelt, nshape);
+    for (i = 0; i < numnp; ++i, x += 2)
+        fprintf(fp, "%f %f\n", x[0], x[1]);
+    for (i = 0; i < numelt*nshape; ++i)
+        fprintf(fp, "%d\n", ix[i]-1);
+}
+
+void writebmesh(FILE* fp, double* x, int numnp,
+               int* ix, int numelt, int nshape)
+{
+    int i;
+    for (i = 0; i < nshape*numelt; ++i)
+        ix[i]--;
+    fprintf(fp, "bmesh\n%d %d %d\n", numnp, numelt, nshape);
+    fwrite(&(x[0]), sizeof(double), 2*numnp, fp);
+    fwrite(&(ix[0]), sizeof(int), nshape*numelt, fp);
+}
+
+void writecdata(FILE* fp, double* x, int numnp)
+{
+    int i;
+    fprintf(fp, "cdata\n");
+    for (i = 0; i < numnp; ++i)
+        fprintf(fp, "%f\n", x[i]);
+}
+
+void writebcdata(FILE* fp, double* x, int numnp)
+{
+    fprintf(fp, "bcdata\n");
+    fwrite(&(x[0]), sizeof(double), numnp, fp);
+}
+
+void writebmdat(FILE* fp, double* x, dcomplex* u, int numnp)
+{
+    fprintf(fp, "bmdat\n");
+    fwrite(x, sizeof(double),   2*numnp, fp);
+    fwrite(u, sizeof(dcomplex), 2*numnp, fp);
+}
+
+void writembcdat(FILE* fp, dcomplex* c, int numnp)
+{
+    fprintf(fp, "mbcdat\n");
+    fwrite(c, sizeof(dcomplex), numnp, fp);
+}
+
+void animatemesh(FILE* fp, int flag)
+{
+    fprintf(fp, "anim\n%d\n", flag);
+    fflush(fp);
+}
+
+void replotmesh(FILE* fp)
+{
+    fprintf(fp, "plot\n");
+    fflush(fp);
+}
+
+void closemesh(FILE* fp)
+{
+    fprintf(fp, "quit\n");
+    fflush(fp);
+    pclose(fp);
+}
+
+void currentmesh(FILE* fp, int currentwin)
+{
+    fprintf(fp, "currentmesh\n%d\n", currentwin-1);
+}
+
+void savemesh(FILE* fp, const char* fname)
+{
+    fprintf(fp, "save %s.png\n", fname);
+    fflush(fp);
+}
+
+$]
+
+
+@function h = pgraph_geth(n)
+global fp_meshv_list
+global fp_meshv_id
+if nargin < 1
+  if isempty(fp_meshv_id), fp_meshv_id = 1; end
+  n = fp_meshv_id;
+end
+if n > length(fp_meshv_list)
+  h = [];
+else
+  h = fp_meshv_list{n};
+end
+
+
+@function pgraph_seth(n, h)
+global fp_meshv_list
+global fp_meshv_id
+if nargin < 2
+  if isempty(fp_meshv_id), fp_meshv_id = 1; end
+  h = n;
+  n = fp_meshv_id;
+end
+fp_meshv_list{n} = h;
+
+
+@function pgraph_figure(n)
+global fp_meshv_list
+global fp_meshv_id
+if nargin < 1, n = length(fp_meshv_list)+1; end
+fp_meshv_id = n;
+
+
+@function pgraph_closeall()
+global fp_meshv_list
+global fp_meshv_id
+for j = 1:length(fp_meshv_list)
+  pgraph_figure(j);
+  pgraph_close();
+end
+fp_meshv_list = [];
+fp_meshv_id = 1;
+
+
+@function fp = pgraph_open(nwin)
+global exe_meshv
+fp = pgraph_geth();
+if isempty(fp)
+  if nargin < 1
+    cmd = exe_meshv;
+  else
+    cmd = sprintf('%s %d', exe_meshv, nwin);
+  end
+  # FILE* fp = popen(cstring cmd, cstring 'w');
+  pgraph_seth(fp);
+end
+
+
+@function pgraph_close
+fp = pgraph_geth();
+if ~isempty(fp)
+  # closemesh(FILE* fp);
+  pgraph_seth([]);
+end
+
+
+@function pgraph_current(currentwin)
+fp = pgraph_open(currentwin);
+# currentmesh(FILE* fp, int currentwin);
+
+
+@function pgraph_write(x, ix, cdata)
+fp = pgraph_open();
+numnp = size(x,2);
+numelt = size(ix,2);
+nshape = size(ix,1);
+# writebmesh(FILE* fp, double[2,numnp] x, int numnp, 
+#            int[nshape,numelt] ix, int numelt, int nshape);
+if nargin > 2
+  # writebcdata(FILE* fp, double[numnp] cdata, int numnp);
+end
+# replotmesh(FILE* fp);
+
+
+@function pgraph_write_mode(x, u, cdata)
+fp = pgraph_open();
+numnp = size(x,2);
+if isempty(u), u = 0*x; end
+# writebmdat(FILE* fp, double[2,numnp] x, dcomplex[2,numnp] u, int numnp);
+if nargin > 2
+  # writembcdat(FILE* fp, dcomplex[numnp] cdata, int numnp);
+end
+
+
+@function pgraph_animate(flag)
+fp = pgraph_open();
+# animatemesh(FILE* fp, int flag);
+
+
+@function pgraph_setskeleton(flag)
+fp = pgraph_open();
+cmd = sprintf('skeleton\n%d\n', flag);
+# fprintf(FILE* fp, cstring cmd);
+
+
+@function pgraph_setcmap(m)
+fp = pgraph_open();
+cmd = sprintf('cmap\n%d\n', m);
+# fprintf(FILE* fp, cstring cmd);
+# replotmesh(FILE* fp);
+
+
+@function pgraph_bound(x1,y1, x2,y2)
+fp = pgraph_open();
+if nargin == 0
+  cmd = sprintf('unbox\n');
+else
+  cmd = sprintf('box\n%g %g %g %g\n', x1, y1, x2, y2);
+end
+# fprintf(FILE* fp, cstring cmd);
+# replotmesh(FILE* fp);
+
+
+@function pgraph_cbound(c1,c2)
+fp = pgraph_open();
+if nargin == 0
+  cmd = sprintf('uncbound\n');
+else
+  cmd = sprintf('cbound\n%g %g\n', c1, c2);
+end
+# fprintf(FILE* fp, cstring cmd);
+# replotmesh(FILE* fp);
+
+
+@function pgraph_save(fname)
+fp = pgraph_open();
+# savemesh(FILE* fp, cstring fname);

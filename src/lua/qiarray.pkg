@@ -1,0 +1,120 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "qiarray.h"
+
+class QIArray {
+    QIArray(int m, int n = 1, int base = 1);
+    ~QIArray();
+
+    void   set(int i, int j, int x);
+    int    get(int i, int j);
+
+    void     wipe();
+    void     copy(QIArray* A);
+    QIArray* view(int i1, int i2, int j1, int j2);
+    QIArray* clone();
+    void     make_owner();
+    void     print(char* fmt = NULL);
+
+    int m();
+    int n();
+    int type();
+    int base();
+};
+
+$[
+
+function QIArray:size()
+  return self:m(), self:n()
+end
+
+local index = QIArray.__index
+local get   = QIArray.get
+local set   = QIArray.set
+local geti  = QIArray.geti
+local clone = QIArray.clone
+local view  = QIArray.view
+QIArray.get  = nil
+QIArray.geti = nil
+
+local function check_index(i,j, array)
+  local b,m,n = array:base(), array:size()
+  if not j then
+    if m == 1 then
+      j = i
+      i = b
+    else
+      j = b
+    end
+  end
+  assert(i >= b and i < m+b, 'Row index out of range')
+  assert(j >= b and j < n+b, 'Col index out of range')
+  return i,j
+end
+
+local function idx_to_ij(self, k)
+  local b,m,n = self:base(), self:size()
+  local i = b + mod(k-b,m)
+  local j = b + floor((k-b)/m)
+  assert(i >= b and i < m+b, 'Row index out of range')
+  assert(j >= b and j < n+b, 'Col index out of range')
+  return i,j
+end
+
+local function same_size(a,b)
+  local m1,n1 = a:size()
+  local m2,n2 = b:size()
+  assert(m1 == m2 and n1 == n2, 'Array size mismatch')
+end
+
+function QIArray:__index(k)
+  if type(k) == 'number' then
+    local i,j = idx_to_ij(self,k)
+    return get(self,i,j), geti(self,i,j)
+  else
+    return index(self,k)
+  end
+end
+
+function QIArray:__newindex(k,v)
+  local i,j = idx_to_ij(self,k)
+  set(self,i,j,v)
+end
+
+function QIArray:__call(i,j)
+  i,j = check_index(i,j, self)
+  return get(self,i,j), geti(self,i,j)
+end
+
+function QIArray:set(i,j,x)
+  i,j = check_index(i,j, self)
+  set(self,i,j,x)
+end
+
+function QIArray:clone()
+  local myclone = clone(self)
+  tolua.takeownership(myclone)
+  return myclone
+end
+
+function QIArray:view(i1,i2,j1,j2)
+  local b,m,n = self:base(), self:size()
+  if not j1 then
+    if m == 1 then
+      i1,i2,j1,j2 = 1,1,i1,i2
+    elseif n == 1 then
+      i1,i2,j1,j2 = i1,i2,1,1
+    else
+      error('Out-of-range subscript')
+    end
+  end
+  assert(i1 >= b and i2 >= i1 and i2-b < m, 'Invalid row range')
+  assert(j1 >= b and j2 >= j1 and j2-b < n, 'Invalid col range')
+  local myview = view(self,i1,i2,j1,j2)
+  tolua.takeownership(view)
+  return myview
+end
+
+$]

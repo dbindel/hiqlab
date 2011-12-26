@@ -1,0 +1,313 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "mesh.h"
+$#include "mesh_csc_dR.h"
+$#include "qarray.h"
+$#include "coordmatrix.h"
+
+dnl -- Define helper macros --
+
+define(`defq_mesh_accessor',`
+    $1 $2      (int i);
+    $1 $2      (int i, int j);
+    $1 branch$2(int i, int j);
+    $1 global$2(int i);')
+
+define(`defq_meshz_accessor',`
+    defq_mesh_accessor(`double',$1)
+    defq_mesh_accessor(`double',$1i)')
+
+dnl ---------------------------
+
+
+class Mesh {
+    Mesh(int ndm);
+    ~Mesh();
+    void set_lua(lua_State* L);
+
+    void tie(double tol);
+
+    double  x(int i, int j);
+    int    ix(int i, int j);
+
+    //int  add_node(int ndm, int n, double x[ndm*n] = 0);
+    //int  add_element(int nen, int n, int e[nen*n], Element* etype);
+    void add_block(double x1, double x2, int nx,
+                   Element* etype, int order);
+
+    void add_block(double x1, double y1,
+                   double x2, double y2,
+                   int nx, int ny,
+                   Element* etype, int order);
+
+    void add_block(double x1, double y1, double z1,
+                   double x2, double y2, double z2,
+                   int nx, int ny, int nz,
+                   Element* etype, int order);
+
+    int add_global(int n = 1);
+
+    void initialize();
+    int  assign_ids();
+
+    void clear_scaling_vector();
+    void set_nodal_u_scale(int slot, double s);
+    void set_nodal_f_scale(int slot, double s);
+
+    void assemble_R();
+
+    void apply_bc();
+    double shapeg(int i, int j);
+
+    void make_harmonic(double omega_r, double omega_i = 0);
+
+    int numnp();
+    int numelt();
+    int numglobals();
+    int get_numid();
+    int get_ndm();
+    int get_ndf();
+    int get_nen();
+    int nbranch_id();
+
+    int      get_nen   (int i);
+    int      nbranch_id(int i);
+    Element* etype     (int i);
+    int      nbranch   (int i);
+
+    double x (int i, int j);
+    int    ix(int i, int j);
+
+    int inode  (int i, int j);
+    int ibranch(int i, int j);
+    int iglobal(int i);
+
+    defq_mesh_accessor(`int', `id')
+    defq_mesh_accessor(`char',`bc')
+    defq_meshz_accessor(`bv')
+    defq_meshz_accessor(`u')
+    defq_mesh_accessor(`double', `v')
+    defq_mesh_accessor(`double', `a')
+    defq_meshz_accessor(`f')
+    defq_mesh_accessor(`double', `d1')
+    defq_mesh_accessor(`double', `d2')
+
+    void own(lua_State* L);
+    Element* own(Element* e);
+};
+
+        int mesh_add_node(Mesh* mesh, int ndm, int n, double x[ndm*n] = 0);
+$ inline int mesh_add_node(Mesh* mesh, int ndm1, int n, double* x)
+$ {
+$     if (ndm1 != mesh->get_ndm())
+$         return 0;
+$     return mesh->add_node(x, n);
+$ }
+
+        int mesh_add_element(Mesh* mesh, int nen, int n, int e[nen*n],
+                             Element* etype);
+$ inline int mesh_add_element(Mesh* mesh, int nen, int n, int* e,
+$                             Element* etype)
+$ {
+$     return mesh->add_element(e, etype, nen, n);
+$ }
+
+        void mesh_set_u(Mesh* mesh, QArray* u);
+$ inline void mesh_set_u(Mesh* mesh, QArray* u)
+$ {
+$     mesh->set_u(u ? u->data_r() : NULL);
+$ }
+
+        void mesh_set_ui(Mesh* mesh, QArray* ui);
+$ inline void mesh_set_ui(Mesh* mesh, QArray* ui)
+$ {
+$     mesh->set_ui(ui ? ui->data_r() : NULL);
+$ }
+
+        void mesh_get_u(Mesh* mesh, QArray* u);
+$ inline void mesh_get_u(Mesh* mesh, QArray* u)
+$ {
+$     mesh->get_reduced(u ? u->data_r() : NULL, Mesh::VEC_U);
+$ }
+
+        void mesh_get_f(Mesh* mesh, QArray* f);
+$ inline void mesh_get_f(Mesh* mesh, QArray* f)
+$ {
+$     mesh->get_reduced(f ? f->data_r() : NULL, Mesh::VEC_F);
+$ }
+
+        void mesh_set_x(Mesh* mesh, int i, int j, double x);
+$ inline void mesh_set_x(Mesh* mesh, int i, int j, double x)
+$ {
+$     mesh->x(i,j) = x;
+$ }
+
+        void mesh_set_ix(Mesh* mesh, int i, int j, int x);
+$ inline void mesh_set_ix(Mesh* mesh, int i, int j, int x)
+$ {
+$     mesh->ix(i,j) = x;
+$ }
+
+        void mesh_set_d1(Mesh* mesh, int i, double s);
+$ inline void mesh_set_d1(Mesh* mesh, int i, double s)
+$ {
+$     mesh->d1(i) = s;
+$ }
+
+        void mesh_set_d2(Mesh* mesh, int i, double s);
+$ inline void mesh_set_d2(Mesh* mesh, int i, double s)
+$ {
+$     mesh->d2(i) = s;
+$ }
+
+        void mesh_set_bcode(Mesh* mesh, int i, int j, const char* type);
+$ inline void mesh_set_bcode(Mesh* mesh, int i, int j, const char* type)
+$ {
+$     mesh->bc(i,j) = *type;
+$ }
+
+        void mesh_set_bcode(Mesh* mesh, int i, const char* type);
+$ inline void mesh_set_bcode(Mesh* mesh, int i, const char* type)
+$ {
+$     mesh->bc(i) = *type;
+$ }
+
+        void mesh_set_bv(Mesh* mesh, int i, int j, double value);
+$ inline void mesh_set_bv(Mesh* mesh, int i, int j, double value)
+$ {
+$     mesh->bv(i,j) = value;
+$ }
+
+        void mesh_set_bv(Mesh* mesh, int i, double value);
+$ inline void mesh_set_bv(Mesh* mesh, int i, double value)
+$ {
+$     mesh->bv(i) = value;
+$ }
+
+inline void assemble_dR(Mesh* mesh, CoordMatrix* matrix, 
+                        double cx, double cv, double ca,
+                        int reduced = 1);
+$ void assemble_dR(Mesh* mesh, CoordMatrix* matrix, 
+$                 double cx, double cv, double ca, int reduced)
+$ {
+$     mesh->assemble_dR(matrix, cx, cv, ca, reduced);
+$ }
+
+CSCMatrix* assemble_dR(Mesh* mesh, double cx, double cv, double ca,
+                       int reduced = 1);
+
+$[
+local function meshw(fname)
+  Mesh[fname] = _G['mesh_' .. fname]    -- Move into Mesh table
+  _G['mesh_' .. fname] = nil            -- Remove from global namespace
+end
+
+meshw 'add_node'
+meshw 'add_element'
+meshw 'set_u'
+meshw 'set_ui'
+meshw 'get_u'
+meshw 'get_f'
+meshw 'set_x'
+meshw 'set_ix'
+meshw 'set_d1'
+meshw 'set_d2'
+meshw 'set_bcode'
+meshw 'set_bv'
+
+Mesh.assemble_dR = assemble_dR;
+assemble_dR = nil
+$]
+
+$[
+local Mesh_new = Mesh.new
+function Mesh.new(...)
+  local mesh = Mesh_new(unpack(arg))
+  mesh:set_lua()
+  return mesh
+end
+
+local saved_x = Mesh.x
+function Mesh.x(self,i,j)
+  if j then
+    return saved_x(self,i,j)
+  else
+    local coords = {}
+    for k = 1,self:get_ndm() do
+      coords[k] = saved_x(self,k-1,i)
+    end
+    return unpack(coords)
+  end
+end
+
+local saved_set_x = Mesh.set_x
+function Mesh.set_x(self,i,j,x)
+  if x then
+    saved_set_x(self,i,j,x)
+  else
+    for k,xk in ipairs(j) do saved_set_x(self,k-1,i,xk) end
+  end
+end
+
+local add_node1 = Mesh.add_node
+function Mesh:add_node(x,num)
+  local num = num or 1;
+  local ndm1 = (table.getn(x))/num
+  return add_node1(self, ndm1, num, x)
+end
+
+local add_element1 = Mesh.add_element
+function Mesh:add_element(e, etype, nen, n)
+  return add_element1(self, nen, n, e, etype)
+end
+
+$]
+
+$[
+-- Redefine get_clean_mesh so it is given lua bindings
+
+local mesh_get_clean_mesh1 = Mesh.get_clean_mesh;
+function Mesh:get_clean_mesh()
+    local mesh = mesh_get_clean_mesh1(self)
+    mesh:set_lua()
+    return mesh
+end
+
+-- Redefine tie to use meshtol if no explicit tolerance is given
+
+local meshtie1 = Mesh.tie;
+function Mesh:tie(tol)
+  tol = tol or meshtol
+  meshtie1(self,tol)
+end
+
+
+-- Check coordinates within a given tolerance
+
+function mesheq(x,y,tol)
+  tol = tol or meshtol
+  return (math.abs(x-y) < tol)
+end
+
+function meshleq(x,y,tol)
+  tol = tol or meshtol
+  return (x < y+tol)
+end
+
+function meshgeq(x,y,tol)
+  tol = tol or meshtol
+  return (x > y-tol)
+end
+
+function meshbetween(x,xmin,xmax,tol)
+  tol = tol or meshtol
+  return (x > xmin-tol) and (x < xmax+tol)
+end
+
+$]
+
+$lfile "meshbc.lua"
+$lfile "meshscale.lua"
+$lfile "meshbuilders.lua"

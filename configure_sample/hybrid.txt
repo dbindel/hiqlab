@@ -1,0 +1,12 @@
+#!/bin/sh
+configure CC=mpicc CXX=mpicxx F77=mpif77 CFLAGS='-g -O2' CXXFLAGS='-g -O2' F77FLAGS='-g -O2' 
+--with-blas=/usr/local/amd/acml/3.5.0/gnu64/lib/libacml.a \
+--with-lapack=/usr/local/amd/acml/3.5.0/gnu64/lib/libacml.a \
+--with-metis=/usr/local/parmetis/3.1/libmetis.a \
+--with-parmetis=/usr/local/parmetis/3.1/libparmetis.a \
+--with-superlulib=/usr/local/superlu/serial_3.0/libsuperlu.a \
+--with-trilinos=/usr/local/trilinos/7.0.5 \
+--with-trilinoslibdir=/usr/local/trilinos/7.0.5/linux_mpi1_gnu \
+--with-petsc=/usr/local/petsc/2.3.2-p8 \
+--with-petscarch=linux_mpi1_cxx \
+--with-slepc=/usr/local/slepc/2.3.2

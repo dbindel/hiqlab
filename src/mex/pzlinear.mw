@@ -1,0 +1,44 @@
+$#include "pzlinear.h"
+
+
+@function n = pz_block_mesh(m)
+% Relabel the nodal degrees of freedom so that all mechanical degrees of
+% freedom come first, followed by all potential degrees of freedom.  Return
+% the total number of mechanical degrees of freedom.
+# int n = pz_block_mesh(Mesh* m);
+
+
+@function n = em_block_mesh(m)
+# int n = em_block_mesh(Mesh* m);
+
+
+@function n = em_circuit_block_mesh(m)
+# int n = em_circuit_block_mesh(Mesh* m);
+
+
+@function [dr,di] = pz_compute_eigs1(m, w0, nev, ncv)
+% Compute eigenvalues for a Piezo problem.
+% You probably should not call this function directly!  Use pz_mode.
+% Inputs:
+%  m   - mesh object
+%  w0  - shift frequency (should be near the target eigenvalues)
+%  nev - number of desired eigenvalues
+%  ncv - size of Krylov subspace (max(20,2*nev) is a good guess)
+% Outputs:
+%  dr  - real part of the nev converged eigs
+%  di  - imag part of the nev converged eigs
+
+# pz_compute_eigs(Mesh* m, double w0, int nev, int ncv,
+#                 output double[nev] dr, output double[nev] di);
+
+
+@function [d,V] = pz_mode_2(mesh, w0, nev)
+% You should probably not call this function directly!  Use pz_mode.
+
+n   = Mesh_get_numid(mesh);
+ncv = max(10,2*nev);
+
+  [d,V] = pz_compute_eigs1(mesh, n, w0, nev, ncv);
+
+d = d(1:nev);
+V = V(:,1:nev);

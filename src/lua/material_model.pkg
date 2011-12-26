@@ -1,0 +1,62 @@
+$#include "material_model.h"
+
+void elasticity_3D(double D[36]=0, double lambda, double mu);
+void thermoelasticity_3D(double Db[49]=0,
+                         double lambda, double mu,
+                         double alphat);
+
+
+void cubic_elasticity_3D(double D[36]=0, double lambda, double mu,
+                         double alpha, double axis1[3]=0, double axis2[3]=0);
+void cubic_thermoelasticity_3D(double D[49]=0,
+                               double lambda, double mu, double alpha, 
+                               double axis1[3]=0, double axis2[3]=0,
+                               double alphat);
+
+void elasticity_2D_strain(double D[9]=0, double lambda, double mu);
+void thermoelasticity_2D_strain(double D[16]=0,
+                                double lambda, double mu,
+                                double alphat);
+void elasticity_2D_stress(double D[9]=0, double lambda, double mu);
+void thermoelasticity_2D_stress(double Db[16]=0, double lambda,
+                                double mu, double alphat);
+
+
+void cubic_elasticity_2D_strain(double D[9]=0, double lambda, double mu,
+                             double alpha, double axis1[3]=0, double axis2[3]=0);
+void cubic_thermoelasticity_2D_strain(double D[16]=0,
+                                      double lambda, double mu,
+                                       double alpha, double axis1[3]=0,
+                                       double axis2[3]=0, double alphat);
+void cubic_elasticity_2D_stress(double D[9]=0, double lambda, double mu,
+                             double alpha, double axis1[3]=0, double axis2[3]=0);
+void cubic_thermoelasticity_2D_stress(double Db[16]=0, double lambda,
+                                      double mu, double alpha,
+                                      double axis1[3]=0, double axis2[3]=0,
+                                      double alphat);
+
+void elasticity_axis(double D[16]=0, double lambda, double mu);
+void thermoelasticity_axis(double D[25]=0, double lambda, double mu,
+                           double alphat);
+
+void hex_elasticity_3D(double D[36]=0, double coeff[5],
+                             double axis1[3]=0, double axis2[3]=0);
+void hex_elasticity_2D_strain(double D[9]=0, double coeff[5]=0,
+                             double axis1[3]=0, double axis2[3]=0);
+void hex_elasticity_2D_stress(double D[9]=0, double coeff[5]=0,
+                             double axis1[3]=0, double axis2[3]=0);
+
+void hex_piezo_3D(double pz[18]=0, double coeff[3]=0,
+                             double axis1[3]=0, double axis2[3]=0);
+void hex_dielectric_3D(double kds[9]=0, double coeff[2]=0,
+                             double axis1[3]=0, double axis2[3]=0);
+
+void piezo_elasticity_3D(double Db[81]=0, double Dmech[36]=0,
+                                 double pz[18]=0, double kds[9]=0);
+void piezo_elasticity_2D_strain(double Db[25]=0, double Dmech[36]=0,
+                                        double pz[18]=0, double kds[9]=0);
+void piezo_elasticity_2D_stress(double Db[25]=0, double Dmech[36]=0,
+                                        double pz[18]=0, double kds[9]=0);
+void piezo_elasticity_2HD_stress(double Db[16]=0, double Dmech[36]=0,
+                                        double pz[18]=0, double kds[9]=0);
+

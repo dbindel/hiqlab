@@ -1,0 +1,97 @@
+% HiQLab
+% Copyright (c): Regents of the University of California
+
+$#include "mesh.h"
+
+
+@function mesh = Mesh_new(ndm)
+# Mesh* mesh = new Mesh(int ndm);
+
+
+@function id = Mesh_add_node(m, x)
+% Add node coordinates to the mesh.
+% Input:
+%  x - an ndm-by-n node coordinate array
+
+ndm = Mesh_get_ndm(m);
+n = size(x,2);
+# int id = m->Mesh.add_node(double[ndm,n] x, int n);
+id = id + 1;
+
+
+@function id = Mesh_add_element(m, e, etype)
+% Add n elements of type etype to the mesh.
+% Low-level routine: zero-based indexing.
+% Input:
+%  e     - an nen-by-n element connectivity array
+%  etype - the element material type
+%  n     - number of elements
+%  nen   - number of element nodes
+
+[nen, n] = size(e);
+e = e-1;
+# int id = m->Mesh.add_element(int[nen,n] e, Element* etype,
+#                              int n, int nen);
+id = id+1;
+
+
+@function Mesh_own_elt(m, etype)
+% Assign ownership of the element etype to mesh.
+% (i.e. when the mesh is deleted, so will be etype).
+% Low-level routine.
+# m->Mesh.own(Element* etype);
+
+
+@function Mesh_add_block1d(m, x1, x2, nx, etype, order)
+% Adds a 1D block of elements to the mesh.
+% Input:
+%  m     - mesh object
+%  x1    - first node coordinate
+%  x2    - last node coordinate
+%  nx    - number of nodes
+%  etype - material type
+%  order - order of interpolating polynomials
+
+# m->Mesh.add_block(double x1, double x2, int nx,
+#                   Element* etype, int order);
+
+
+@function Mesh_add_block2d(m, x1, y1, x2, y2, nx, ny, etype, order)
+% Adds a 2D block of elements to the mesh.
+% Input:
+%  m     - mesh object
+%  x1,y1 - lower coordinates
+%  x2,y2 - upper coordinates
+%  nx,ny - number of nodes in each direction
+%  etype - material type
+%  order - order of interpolating polynomials
+
+# m->Mesh.add_block(double x1, double y1,
+#                   double x2, double y2,
+#                   int nx, int ny,
+#                   Element* etype, int order);
+
+
+@function Mesh_add_block3d(m, x1, y1, z1, x2, y2, z2, nx, ny, nz, etype, order)
+% Adds a 3D block of elements to the mesh.
+% Input:
+%  m        - mesh object
+%  x1,y1,z1 - lower coordinates
+%  x2,y2,z2 - upper coordinates
+%  nx,ny,nz - number of nodes in each direction
+%  etype    - material type
+%  order    - order of interpolating polynomials
+
+# m->Mesh.add_block(double x1, double y1, double z1,
+#                   double x2, double y2, double z2,
+#                   int nx, int ny, int nz,
+#                   Element* etype, int order);
+
+
+@function Mesh_tie(m, tol)
+% Tie together the elements in a mesh
+% Input:
+%  tol  - distance at which nodes are considered identical
+# m->Mesh.tie(double tol);
+
+

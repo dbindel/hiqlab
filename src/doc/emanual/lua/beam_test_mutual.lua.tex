@@ -1,0 +1,33 @@
+-- Include function definition file
+require 'common.lua'
+
+-- Define physical dimension of mesh
+mesh = Mesh:new(2);
+
+-- Define element type
+mtype     = {}
+mtype.E   =  1000.0
+mtype.nu  =    0.25
+etype = make_material_e( mtype, 'planestrain');
+
+-- Define beam geometry
+beam_l = 10
+beam_w =  2
+
+-----------------------------------------
+--
+-- Define nodes and elements
+-- Add nodes and elements to mesh
+-----------------------------------------
+
+-- Define boundary conditions
+function bc_function(x,y)
+  if mesheq( x, 0, 1e-6) then
+     return 'uu', 0, 0;
+  end
+  if (mesheq( x, beam_l, 1e-6) and mesheq( y, 0, 1e-6)) then
+     return ' f', 1;
+  end
+end
+
+mesh:set_bc(bc_function)

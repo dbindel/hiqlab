@@ -1,0 +1,6 @@
+#!/bin/sh
+configure CC=pgcc CXX=pgCC F77=pgf77 CFLAGS='-g -O2' CXXFLAGS='-g -O2' F77FLAGS='-g -O2' \
+--with-blas=/opt/amd/acml/3.1.0/pgi64/lib/libacml.a \
+--with-lapack=/opt/amd/acml/3.1.0/pgi64/lib/libacml.a \
+--with-umfpack=/home5/mavt/tkoyama/umfpack/UMFPACK \
+--with-arpack=/home5/mavt/tkoyama/local/lib

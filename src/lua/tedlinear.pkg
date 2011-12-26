@@ -1,0 +1,172 @@
+$#include "mesh.h"
+$#include "tedlinear.h"
+$#include "qarray.h"
+
+
+$ int ted_compute_eigs_vecs(Mesh* mesh, double w0, double T0, double cT,
+$                       int nev, int ncv,
+$                       double* dr, double* di,
+$                       QArray* vr, QArray* vi)
+$ {
+$     return ted_compute_eigs(mesh, w0, T0, cT, nev, ncv, dr, di,
+$                                   vr->data_r(), vi->data_r());
+$ }
+
+int ted_compute_eigs(Mesh* m, double w0, double T0, double cT,
+                     int nev, int ncv,
+                     double dr[nev] = 0, double di[nev] = 0);
+
+int ted_compute_eigs_vecs(Mesh* mesh, double w0,
+                      double T0, double cT,
+                      int nev, int ncv,
+                      double dr[nev] = 0, double di[nev] = 0,
+                      QArray* vr, QArray* vi);
+
+int ted_compute_eigsp(Mesh* m, double w0,
+                      int nev, int ncv,
+                      double dr[nev] = 0, double di[nev] = 0);
+
+int ted_compute_eigs_mech(Mesh* m, double w0,
+                     int nev, int ncv,
+                     double dr[nev] = 0, double di[nev] = 0);
+
+$[
+-- Define a wrapper around ted_compute_eigs
+
+local ted_compute_eigs1 = ted_compute_eigs
+local ted_compute_eigs_vecs1 = ted_compute_eigs_vecs
+
+function ted_compute_eigs(mesh, w0, T0, cT, nev, ncv, dr, di)
+
+  -- Allow pass-by-name
+  if not w0 and type(mesh) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = p.w0 or 0
+    T0   = p.T0 or 0
+    cT   = p.cT or (dim_scales and dim_scales.T) or 1
+    nev  = p.nev or 5
+    ncv  = p.ncv
+    dr   = p.dr
+    di   = p.di
+  end
+
+  -- Call compute_eigs(m, w0, nev)
+  if not nev then
+    nev = T0
+    T0 = 0
+    cT   = (dim_scales and dim_scales.T) or 1
+  end
+
+  -- Call compute_eigs(m, w0, T0, cT, nev)
+  if not ncv then
+    if nev < 10 then ncv = 20 else ncv = 2*nev end
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {};
+    di = {};
+    for i=1,nev do
+      dr[i] = 0;
+      di[i] = 0;
+    end
+  end
+
+  -- Initialize vectors
+  local QArray_type = 0
+  if not vr then
+    local numid = mesh:get_numid()
+    vr = QArray:new(numid, nev, QArray_type)
+    vi = QArray:new(numid, nev, QArray_type)
+  end
+
+  local status = ted_compute_eigs_vecs1(mesh, w0, T0, cT, nev, ncv, dr, di, vr, vi)
+  return status, dr, di, vr, vi
+
+end
+
+
+-- Define a wrapper around ted_compute_eigsp
+
+local ted_compute_eigsp1 = ted_compute_eigsp
+
+function ted_compute_eigsp(mesh, w0, nev, ncv, dr, di)
+
+  -- Allow pass-by-name
+  if not w0 and type(mesh) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = p.w0 or 0
+    T0   = p.T0 or 0
+    nev  = p.nev or 1
+    ncv  = p.ncv
+    dr   = p.dr
+    di   = p.di
+  end
+
+  -- Call compute_eigs(m, w0, nev)
+  nev = nev or 1
+
+  -- Call compute_eigs(m, w0, T0, nev)
+  if not ncv then
+    if nev < 10 then ncv = 20 else ncv = 2*nev end
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {};
+    di = {};
+    for i=1,nev do
+      dr[i] = 0;
+      di[i] = 0;
+    end
+  end
+
+  local status = ted_compute_eigsp1(mesh, w0, nev, ncv, dr, di)
+  return status, dr, di
+
+end
+
+
+-- Define a wrapper around ted_compute_eigs_mech
+
+local ted_compute_eigs_mech1 = ted_compute_eigs_mech
+
+function ted_compute_eigs_mech(mesh, w0, nev, ncv, dr, di)
+
+  -- Allow pass-by-name
+  if not w0 and type(mesh) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = p.w0 or 0
+    nev  = p.nev or 5
+    ncv  = p.ncv
+    dr   = p.dr
+    di   = p.di
+  end
+
+  -- Default shift and number of eigenvalues
+  w0  = w0  or 0
+  nev = nev or 5
+
+  -- Call compute_ted_eigs_mech(m, w0, nev)
+  if not ncv then
+    if nev < 10 then ncv = 20 else ncv = 2*nev end
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {};
+    di = {};
+    for i=1,nev do
+      dr[i] = 0;
+      di[i] = 0;
+    end
+  end
+
+  local status = ted_compute_eigs_mech1(mesh, w0, nev, ncv, dr, di)
+  return status, dr, di
+
+end
+$]

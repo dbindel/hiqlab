@@ -1,0 +1,19 @@
+
+# Which compiler to use
+CC = @CC@
+
+# What optimization level to use
+OPTFLAGS = 
+
+# What options to be used by the compiler
+COPTIONS = @CFLAGS@
+
+# What options to be used by the loader
+LDOPTIONS = 
+
+# What archiving to use
+AR = @AR@ rv
+
+# What to use for indexing the archive
+RANLIB = @RANLIB@
+

@@ -1,0 +1,34 @@
+/home/dbindel/work/hiqlab/tools/trilinos/7.0.5/configure CC=gcc CXX=g++ F77= \
+--enable-mpi --with-mpi-compilers \
+--disable-default-packages        \
+--enable-amesos  \
+--enable-amesos-klu \
+--enable-amesos-umfpack \
+--enable-anasazi \
+--enable-aztecoo \
+--enable-epetra  \
+--enable-epetraext  \
+--enable-teuchos \
+--enable-aztecoo-teuchos \
+--enable-triutils \
+--enable-didasko \
+--enable-ml \
+--with-ml_metis \
+--with-ml_parmetis3x \
+--enable-meros \
+--enable-ifpack \
+--enable-ifpack-metis \
+--disable-tests \
+--disable-examples \
+--with-blas=-lblas \
+--with-incdirs="-I/home/dbindel/work/hiqlab/tools/UMFPACK/Include -I/home/dbindel/work/hiqlab/tools/AMD/Include -I/home/dbindel/work/hiqlab/tools/UFconfig  -I/home/dbindel/work/hiqlab/tools/ParMetis-3.1/ParMETISLib -I/home/dbindel/work/hiqlab/tools/ParMetis-3.1/METISLib -I/home/dbindel/work/hiqlab/tools/ParMetis-3.1"  \
+--with-ldflags="-L/home/dbindel/work/hiqlab/tools/UMFPACK/Lib -L/home/dbindel/work/hiqlab/tools/AMD/Lib -L/home/dbindel/work/hiqlab/tools/ParMetis-3.1/ " \
+--with-libs="-lumfpack -lamd  -lmetis -lparmetis     -L/usr/lib/gcc/x86_64-redhat-linux/3.4.6 -L/usr/lib/gcc/x86_64-redhat-linux/3.4.6/../../../../lib64 -L/usr/lib/gcc/x86_64-redhat-linux/3.4.6/../../.. -L/lib/../lib64 -L/usr/lib/../lib64 -lfrtbegin -lg2c -lm -lgcc_s" \
+| tee configure_HIQLAB.log
+
+
+#--enable-amesos-scalapack \
+#--enable-amesos-mumps \
+#--enable-examples \
+#--enable-tests   \
+#/usr/lib/gcc/x86_64-redhat-linux/4.1.0/libgfortranbegin /usr/lib/gcc/x86_64-redhat-linux/4.1.0/libgfortran 

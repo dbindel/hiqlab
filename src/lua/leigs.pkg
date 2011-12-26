@@ -1,0 +1,293 @@
+$#include "leigs.h"
+
+class Arpack {
+    void set_n(int n_);
+    void set_nev(int nev_);
+    void set_ncv(int ncv_);
+    void set_rvec(int rvec_);
+    void set_maxitr(int maxitr_);
+    void set_which(char* which_);
+    void set_tol(double tol_);
+
+    int    get_n();
+    int    get_nev();
+    int    get_ncv();
+    int    get_rvec();
+    int    get_maxitr();
+    char*  get_which();
+    double get_tol();
+};
+
+
+class ArpackDSLua : public Arpack {
+    ArpackDSLua();
+    ~ArpackDSLua();
+    void set_mode(int mode);
+    void set_shift(double sigma);
+    void compute_eigs(lua_State* L,
+                      lua_Object op1, lua_Object op2, lua_Object opM,
+                      QArray* d, QArray* v);
+};
+
+
+class ArpackDNLua : public Arpack {
+    ArpackDNLua();
+    ~ArpackDNLua();
+    void set_mode(int mode);
+    void set_shift(double sigmar, double sigmai = 0);
+    void compute_eigs(lua_State* L,
+                      lua_Object op1, lua_Object op2, lua_Object opM,
+                      QArray* d, QArray* v);
+};
+
+
+class ArpackZNLua : public Arpack {
+    ArpackZNLua();
+    ~ArpackZNLua();
+    void set_mode(int mode);
+    void set_shift(double sigmar, double sigmai = 0);
+    void compute_eigs(lua_State* L,
+                      lua_Object op1, lua_Object op2, lua_Object opM,
+                      QArray* d, QArray* v);
+};
+
+
+$[
+
+-- Unpack a mode string
+--
+local function mode_unpack(p)
+  local name = string.upper(p.mode)
+
+  if name == 'STANDARD' then
+    p.mode = 1
+  elseif name == 'GENERALIZED' then
+    p.mode = 2
+  elseif name == 'SHIFT-INVERT' or
+         name == 'SHIFT INVERT' then
+    p.mode = 3
+  elseif name == 'BUCKLING' then
+    p.mode = 4
+    assert(p.real ~= false and p.symmetric ~= false,
+           'Buckling mode only works with real symmetric problems')
+    p.real = true
+    p.symmetric = true
+  elseif name == 'CAYLEY' then
+    p.mode = 5
+    assert(p.real ~= false and p.symmetric ~= false,
+           'Cayley mode only works with real symmetric problems')
+    p.real = true
+    p.symmetric = true
+  end
+end
+
+
+-- Create an operator if p.op is a CSCMatrix
+--
+local function Amat_to_op(p)
+  local Amat = p.op
+
+  if p.n == nil then
+    p.n = Amat:get_n()
+  end
+  assert(p.n == Amat:get_n(), 'Matrix is the wrong size!')
+
+  if p.real == nil then
+    p.real = (Amat:is_real() == 1)
+  elseif p.real then
+    assert(Amat:is_real() == 1, 'Matrix must be real if real = 1')
+  end
+
+  if not p.mode or p.mode == 1 then
+    p.op = function(x,y)
+      Amat:apply(x,y)
+    end
+  elseif p.mode == 3 or (not p.real and p.mode == 4) then
+    local scratch = nil
+    local AmatLU = UMFMatrix:new(Amat)
+    tolua.takeownership(AmatLU)
+    p.op = function(x,y)
+      if not scratch then scratch = x:clone() end
+      p.M(x,scratch)
+      AmatLU:solve(y,scratch)
+    end
+    p.op2 = function(x,y,Mx)
+      AmatLU:solve(y,Mx)
+    end
+  else
+    error('Please specify operator as a function for mode != 1,3')
+  end
+end
+
+
+-- Create an operator if p.op is an UMFMatrix
+--
+local function Alu_to_op(p)
+  local Amat = p.op
+
+  if p.n == nil then
+    p.n = Amat:get_n()
+  end
+  assert(p.n == Amat:get_n(), 'Matrix is the wrong size!')
+
+  if p.real == nil then
+    p.real = (Amat:is_real() == 1)
+  elseif p.real then
+    assert(Amat:is_real() == 1, 'Matrix must be real if real = 1')
+  end
+
+  if p.mode and (p.mode == 3 or (not p.real and p.mode == 4)) then
+    local scratch = nil
+    p.op = function(x,y)
+      if not scratch then scratch = x:clone() end
+      p.M(x,scratch)
+      Amat:solve(y,scratch)
+    end
+    p.op2 = function(x,y,Mx)
+      Amat:solve(y,Mx)
+    end
+  else
+    error('Please specify operator as a function or matrix for mode != 3,4')
+  end
+end
+
+
+-- Create an operator if p.M is a CSCMatrix
+--
+local function Mmat_to_op(p)
+  local Mmat = p.M
+  if p.n == nil then
+    p.n = Mmat:get_n()
+  end
+  assert(p.n == Mmat:get_n(), 'Mass matrix is the wrong size!')
+  if p.real then
+    assert(Mmat:is_real() == 1, 'Mass matrix must be real if real = 1')
+  end
+  p.M = function(x,y)
+    Mmat:apply(x,y)
+  end
+end
+
+
+-- Front-end interface to ARPACK eigensolvers
+--
+function leigs(p)
+
+  -- Parse mode string information (if mode is in string form)
+  if type(p.mode or 1) == 'string'   then mode_unpack(p)  end
+
+  -- Convert matrices to operators
+  if tolua.type(p.op) == 'CSCMatrix' then Amat_to_op(p)   end
+  if tolua.type(p.op) == 'UMFMatrix' then Alu_to_op(p)    end
+  if tolua.type(p.M)  == 'CSCMatrix' then Mmat_to_op(p)   end
+
+  -- Do some sanity checks
+  if not p.op then
+    error('Undefined operator in ARPACK call');
+  end
+  if type(p.op) ~= 'function' then
+    error('Operator must be a function or a sparse matrix')
+  end
+  if p.M and (type(p.M) ~= 'function') then
+    error('Mass matrix must be a function or a sparse matrix')
+  end
+  if not p.n then
+    error('The problem size n is undefined')
+  end
+
+  -- Figure out the solver type
+  local arpack = nil
+  local dname
+  if p.real then
+    if p.symmetric then
+      arpack = ArpackDSLua:new()
+      dname = 'ARPACK: Real symmetric driver'
+    else
+      arpack = ArpackDNLua:new()
+      dname = 'ARPACK: Real nonsymmetric driver'
+    end
+  else
+    arpack = ArpackZNLua:new()
+    dname = 'ARPACK: Complex driver'
+  end
+
+  -- Set problem size
+  arpack:set_n(p.n)
+
+  -- Set shift
+  if p.sigma and p.sigmai then
+    arpack:set_shift(p.sigma, p.sigmai)
+  elseif p.sigma then
+    arpack:set_shift(p.sigma)
+  end
+
+  -- Set other parameters
+  if p.mode   then  arpack:set_mode(p.mode)     end
+  if p.nev    then  arpack:set_nev(p.nev)       end
+  if p.ncv    then  arpack:set_ncv(p.ncv)       end
+  if p.rvec   then  arpack:set_rvec(p.rvec)     end
+  if p.maxitr then  arpack:set_maxitr(p.maxitr) end
+  if p.which  then  arpack:set_which(p.which)   end
+  if p.tol    then  arpack:set_tol(p.tol)       end
+
+  -- Default op2 if it's undefined
+  if not p.op2 then
+    p.op2 = function(x,y,z) p.op(x,y) end
+  end
+
+  -- Allocate return space
+  local d = nil
+  local v = nil
+  if p.real then
+    if p.symmetric then
+      d = QArray:new(arpack:get_ncv(),1,   0)
+      v = QArray:new(p.n,arpack:get_ncv(), 0)
+    else
+      d = QArray:new(arpack:get_ncv(),1,   2)
+      v = QArray:new(p.n,arpack:get_ncv(), 0)
+    end
+  else
+    d = QArray:new(arpack:get_ncv(),1,   1)
+    v = QArray:new(p.n,arpack:get_ncv(), 1)
+  end
+  tolua.takeownership(d)
+  tolua.takeownership(v)
+
+  if p.verbose and p.verbose > 0 then
+    print(dname)
+    print '----------------'
+    if p.verbose > 1 then
+      if p.mode then
+        printf('Mode:     %d', p.mode);
+        printf('Shift:    %f+%fi', p.sigma or 0, p.sigmai or 0)
+      end
+      printf('nev/ncv:    %d %d', arpack:get_nev(), arpack:get_ncv())
+      printf('vectors:    %d',    arpack:get_rvec()   )
+      printf('which:      %s',    arpack:get_which()  )
+      printf('max iters:  %d',    arpack:get_maxitr() )
+      printf('tol:        %f',    arpack:get_tol()    )
+      print '----------------'
+    end
+  end
+
+  -- Compute the eigenvalues!
+  arpack:compute_eigs(p.op, p.op2, p.M, d, v)
+
+  if p.verbose and p.verbose > 0 then
+    print('Eigenvalues:')
+    for i = 1,arpack:get_nev() do
+      local dr,di
+      dr,di = d(i)
+      printf('%02d: %1.8e %1.8e', i, dr, di or 0)
+    end
+  end
+
+  -- Clean up solver object
+  arpack:delete()
+
+  -- Done!  Time to return
+  return d,v
+
+end
+$]
+

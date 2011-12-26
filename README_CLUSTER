@@ -1,0 +1,104 @@
+1. Configure:
+   In the directory HIQLAB_HOME, open file 
+
+     config_cluster
+
+   and modify the directories for the,
+
+     BLAS and LAPACK
+
+   as well as the MPI compilers for c, c++, and fortran.
+   Then run the script file.
+
+   > ./config_cluster
+   
+2. Construct HIQLAB:
+   In the directory HIQLAB_HOME
+
+   > make hybrid
+
+6. Run tests:
+   Set one environment variable,
+
+   export HIQ_INIT = HIQLAB_HOME/init.lua
+
+   The tests are located in the directory HIQLAB_HOME/test_cluster.
+   Modify the Makefile so that the number of processes
+
+     NP
+
+   and the mpirun command
+
+     MPIRUN
+
+   are correct. Then run the tests,
+
+   > make test_petsc
+   > make test_trilinos
+
+   The results are saved in files
+
+     petsc_results_X.txt
+     trilinos_results_X.txt
+
+   respectively, where the X is replaced by the number of processes running.
+
+7. Intrepretation of results:
+   All compuations are solving linear systems of equations iteratively 
+   for the solution vector x
+
+       A x = b
+
+   where A is a given matrix and b is a given vector. A preconditioner P can
+   be applied to make it easier to solve this problem.
+
+       PA x = Pb
+
+   The accuracy of the solution can be measured in several ways.
+
+     Preconditioned          residual:  resid_prec     = ||PA x - Pb||
+     Preconditioned Relative residual:  resid_prec_rel = ||PA x - Pb|| / ||Pb||
+     Absolute                residual:  resid_abs      = || A x -  b||
+     Relative                residual:  resid_rel      = || A x -  b|| / ||b||
+
+   where ||b|| is the norm of the vector b. The tolerance for convergence
+   is set in the code as the following,
+
+     Petsc: Computation is stopped when,
+
+                       resid_prec_rel < 1.0e-9  ---    CONVERGENCE
+                       iterations     > 1000    --- NO CONVERGENCE
+
+     Trilinos: Computation is stopped when,
+
+                       resid_rel      < 1.0e-9  ---    CONVERGENCE
+                       iterations     > 1000    --- NO CONVERGENCE
+
+   YYYY_results_X.txt
+
+      -Number of proceses      : Number of processes run      
+      -NDOF                    : Degrees of freedom of the problem
+                                 (approx. size of matrix)
+      -Norm of residual(prec)  : 2-Norm of the preconditioned residual
+      -Norm of residual(abs)   : 2-Norm of the absolute residual
+      -Norm of residual(rel)   : 2-Norm of the relative residual
+      -Number of Iterations    : Number of iterations conducted in method
+      -Elapsed time            : Total time to execute code        (seconds)
+      -Elapsed time(Only solve): Time spent to compute x from Ax=b (seconds)
+
+   The solutions are not accurate unless the relative residual is 
+   small(around 1e-6).
+
+8. Results on gonzales
+
+      -NDOF: 1053441
+      
+      -Petsc
+                 8 process: 481.29 sec 13175 MB
+                16 process: 276.84 sec 15649 MB
+                32 process: 155.97 sec 20563 MB
+
+      -Trilinos
+                 8 process: ???    sec ???   MB
+                16 process: 535.17 sec 14171 MB
+                32 process: 261.57 sec 16816 MB

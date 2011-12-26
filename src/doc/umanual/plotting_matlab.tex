@@ -1,0 +1,181 @@
+\newpage
+\section{Plotting results (Matlab)}
+\subsection{Mesh plots}
+There are several plotting routines for viewing the behavior of 2D
+meshes:
+\begin{codelist}
+
+  \item[plotmesh(mesh,opt)]  Plots a given mesh.  Options are
+    \begin{codelist}
+      \item[anchors]  Marker for nodes with displacement BC
+        (default: \ttt{'g+'})
+      \item[forces]   Marker for nodes with force BC
+        (default: \ttt{'r+'})
+      \item[deform]   Deform mesh according to first to fields of $u$?
+        (default: false)
+      \item[clf]      Clear the figure before display?
+        (default: true)
+      \item[axequal]  Use equal axes in plots? (default: false)
+    \end{codelist}
+
+\end{codelist}
+
+
+\subsection{Plotting the deformed mesh}
+
+\begin{codelist}
+
+  \item[plotfield1d(mesh,opt)]
+  Colors are chosen according to the magnitudes of the u components.
+      \begin{codelist}
+      \item[ufields]  Fields to use for displacement 
+        (default: \ttt{[1]})
+      \item[cfields]  Fields to use for coloring
+        (default: \ttt{[1]})
+      \item[ncfields] Number of color Fields to obtain
+      \item[axequal]  Use equal axes in plots? (default: false)
+      \item[subplot]  Subplot setup (default: \ttt{[length(nfields), 1]})
+      \item[deform]   Deform mesh according to first to fields of $u$?
+        (default: false)
+      \item[clf]      Clear the figure before display?
+        (default: true)
+      \item[axis]     Set axes
+      \item[subplot]  Subplot size (default is [nfields 1])
+      \item[xscale]   Amount to scale by (for unit change)(Default:1)
+      \item[xlabel]   X label (Default: [])
+      \item[ylabel]   Y label (Default: []) 
+      \item[titles]   Title (can be a cell array of titles)(Default: []) 
+      \end{codelist}
+
+  \item[plotfield2d(mesh,opt)]
+  Colors are chosen according to the magnitudes of the u components.
+      \begin{codelist}
+      \item[ufields]  Fields to use for displacement 
+        (default: \ttt{[1,2]})
+      \item[cfields]  Fields to use for coloring
+        (default: \ttt{[1,2]})
+      \item[ncfields] Number of color Fields to obtain(defualt:1)
+      \item[cbias]    Bias of the color scale (cmax/cbias->red)(default: 3)
+      \item[cbar]     Add colorbar (Default: false)
+      \item[cscale]   Scale field colors together? (Default: false)
+      \item[axequal]  Use equal axes in plots? (default: false)
+      \item[subplot]  Subplot setup (default: \ttt{[length(nfields), 1]})
+      \item[deform]   Deform mesh according to first to fields of $u$?
+        (default: false)
+      \item[clf]      Clear the figure before display?
+        (default: true)
+      \item[axis]     Set axes
+      \item[subplot]  Subplot size (default is [nfields 1])
+      \item[xscale]   Amount to scale by (for unit change)(Default:1)
+      \item[xlabel]   X label (Default: [])
+      \item[ylabel]   Y label (Default: []) 
+      \item[titles]   Title (can be a cell array of titles)(Default: []) 
+      \end{codelist}
+
+\end{codelist}
+
+\subsection{Animations}
+
+\begin{codelist}
+
+  \item[plotcycle1d(mesh,s,opt)]
+    Plot an animation of the motion of the mesh.  The amplitude of
+    motion is scaled by the factor \ttt{s} (which defaults to one
+    if it is not provided).  The frames can be written to disk as a
+    sequence of PNG files to make a movie later.
+    The following options can be set through the \ttt{opt} structure
+    \begin{codelist}[framepng]
+      \item[framepng] Format string for movie frame files (default: [])
+      \item[nframes]  Number of frames to be plotted (default: 32)
+      \item[fpcycle]  Frames per cycle (default: 16)
+      \item[startf]   Start frame number (default: 1)
+      \item[fpause]   Pause between re-plotting frames (default: 0.25)
+      \item[axequal]  Use equal axes in plots? (default: false)
+      \item[axis]     Set axes
+      \item[subplot]  Subplot size (default is [nfields 1])
+      \item[xscale]   Amount to scale by (for unit change)(Default:1)
+      \item[xlabel]   X label (Default: [])
+      \item[ylabel]   Y label (Default: []) 
+      \item[titles]   Title (can be a cell array of titles)(Default: []) 
+      \item[avi\_file]Title of avi file to generate(Default: []) 
+                         (Default: NO AVI FILE IS PRODUCED)
+      \item[avi\_w]    Width  of the window size(Default: 300) 
+      \item[avi\_h]    Height of the window size(Default: 300) 
+      \item[avi\_left] Window distance from left side of monitor(Default: 10) 
+      \item[avi\_bottom]Window distance from bottom    of monitor(Default: def) 
+                        (Default is set so window touches top of monitor)
+    \end{codelist}
+
+
+  \item[plotcycle2d(mesh,s,opt)]
+    Plot an animation of the motion of the mesh.  The amplitude of
+    motion is scaled by the factor \ttt{s} (which defaults to one
+    if it is not provided).  The frames can be written to disk as a
+    sequence of PNG files to make a movie later.
+    The following options can be set through the \ttt{opt} structure
+    \begin{codelist}[framepng]
+      \item[framepng] Format string for movie frame files (default: [])
+      \item[nframes]  Number of frames to be plotted (default: 32)
+      \item[fpcycle]  Frames per cycle (default: 16)
+      \item[startf]   Start frame number (default: 1)
+      \item[fpause]   Pause between re-plotting frames (default: 0.25)
+      \item[cscale]   Color all fields on the same scale? (default: false)
+      \item[cbias]    Bias of the color scale (cmax/cbias->red)(default: 3)
+      \item[ufields]  Fields to use for displacement 
+        (default: \ttt{[1 2]})
+      \item[cfields]  Fields to use for coloring
+        (default: \ttt{[1 2]})
+      \item[axequal]  Use equal axes in plots? (default: false)
+      \item[subplot]  Subplot setup (default: \ttt{[length(cfields), 1]})
+
+      \item[axis]     Set axes
+      \item[subplot]  Subplot size (default is [nfields 1])
+      \item[xscale]   Amount to scale by (for unit change)(Default:1)
+      \item[xlabel]   X label (Default: [])
+      \item[ylabel]   Y label (Default: []) 
+      \item[titles]   Title (can be a cell array of titles)(Default: []) 
+      \item[avi\_file]Title of avi file to generate(Default: []) 
+                         (Default: NO AVI FILE IS PRODUCED)
+      \item[avi\_w]    Width  of the window size(Default: 300) 
+      \item[avi\_h]    Height of the window size(Default: 300) 
+      \item[avi\_left] Window distance from left side of monitor(Default: 10) 
+      \item[avi\_bottom]Window distance from bottom    of monitor(Default: def) 
+                        (Default is set so window touches top of monitor)
+
+    \end{codelist}
+\end{codelist}
+
+\subsection{Plotting Bode plots}
+
+In addition, there is a function for viewing Bode plots:
+\begin{codelist}
+
+  \item[plot\_bode(freq,H,opt)]
+    Plots a Bode plot.  \ttt{H} is the transfer function evaluated
+    at frequency points \ttt{freq}.  The option structure \ttt{opt}
+    may contain the following options:
+    \begin{codelist}[magnitude]
+    \item[usehz]     Assume \ttt{freq} is in Hz (default: false)
+    \item[logf]      Use a log scale on the frequency axis (default: false)
+    \item[magnitude] Plot magnitude only (default: false)
+    \item[visualQ]   Visually compute $Q$ for the highest peak (default: false)
+    \item[lstyle]    Set the line style for the plot (default: \ttt{'b'})
+    \end{codelist}
+    For example, to plot a reduced model Bode plot on top of an exact
+    Bode plot, we might use the following code:
+    \begin{verbatim}
+  figure(1); hold on
+  opt.logf = 1;
+  opt.lstyle = 'b' ; plot_bode(freq_full, H_full, opt);
+  opt.lstyle = 'r:'; plot_bode(freq_rom,  H_rom,  opt);
+  hold off
+    \end{verbatim}
+
+\end{codelist}
+It is also possible to simultaneously show a deformed mesh and a Bode
+plot with a marker indicating the excitation frequency.
+\begin{codelist}
+  \item[plotmesh\_bode(mesh,f,H,fcurrent,opt)]
+    Plot the deformed mesh and create a Bode plot.  The \ttt{opt}
+    field is passed through to \ttt{plotmesh}.
+\end{codelist}

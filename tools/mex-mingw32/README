@@ -1,0 +1,44 @@
+Install instructions:
+
+1. Edit make.inc to point to gcc, g++, and dlltool (these may be ordinary
+   compilers or cross-compilers -- see note below).
+
+2. Set MEXMINGW32 in make.inc to the root directory where the mex
+   build system will be installed.
+
+3. Either copy the Windows MATLAB/extern/include subdirectory to
+   mexinc, or point the WMEXINC variable in make.inc to your Windows 
+   MATLAB/extern/include directory.
+
+4. Type "make install" to build the support libraries.
+
+5. Type "make" to build the test file (eventq2mex).  The test driver is
+   testq2.m.
+
+
+Setting up new MEX files:
+
+For very simple MEX files (like the event queue example), you can use
+the pattern rules defined in mex.inc.  For more complicated MEX files,
+you will want to define rules something like this:
+
+mymex.dll:
+        $(CC) -c $(WMEXCFLAGS) $(CFLAGS) mymex.c
+        $(CC) -shared $(WMEXLIBDIR)/mex.def -o mymex.dll -s 
+                mymex.o mylib.a $(WMEXLIBS)
+
+where mymex.c and mylib.a are things that you have defined, and the
+various macros are provided in make.inc.
+
+If you are compiling C++ MEX files, you will need to use g++ rather
+than gcc to compile the final DLL.
+
+
+NOTE: 
+
+If you want to build a cross-compiler system for producing target MEX
+files on mingw32, you will first want to set up a cross-compiler.  I used
+the instructions from:
+
+  http://www.libsdl.org/extras/win32/cross/README.txt
+

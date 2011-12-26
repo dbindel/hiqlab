@@ -1,0 +1,1434 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{}
+
+% =================================================================
+
+\newcommand{\hiq}{\texttt{HiQLab}}
+
+\newcommand{\devnote}[1]{%
+  \begin{trivlist}
+  \item\textbf{Development note}: #1
+  \end{trivlist}}
+
+\newenvironment{codelist}[1][\quad]%
+  {\begin{list}{}{%
+   \settowidth{\labelwidth}{\texttt{#1}\hfil}%
+   \setlength{\leftmargin}{\labelwidth}%
+   \addtolength{\leftmargin}{\labelsep}%
+   \addtolength{\leftmargin}{\parindent}%
+   \renewcommand{\makelabel}[1]{\texttt{##1}}}}%
+  {\end{list}}
+
+\newcommand{\ttt}[1]{\texttt{#1}}
+
+\renewcommand{\Re}{\operatorname{Re}}
+\renewcommand{\Im}{\operatorname{Im}}
+
+% =================================================================
+
+\begin{document}
+
+\title{\hiq: Programmer's Manual}
+\author{David Bindel}
+
+\maketitle
+\tableofcontents
+
+% =================================================================
+
+\section{Introduction}
+
+\subsection{\hiq\ description and rationale}
+
+\hiq\ is a finite element program written to study damping in resonant
+MEMS.  Though the program is designed with resonant MEMS in mind, the
+architecture is general, and can handle other types of problems.  Most
+architectural features in \hiq\ can be found in standard finite
+element codes like FEAP; we also stole liberally from the code base
+for the SUGAR MEMS simulator.
+
+We wrote \hiq\ to be independent of any existing finite element code
+for the following reasons:
+\begin{itemize}
+
+  \item We want to share our code, both with collaborators and with
+  the community.  This is a much easier if the code does not depend on
+  some expensive external package.
+
+  \item We want to experiment with low-level details, which is more
+  easily done if we have full access to the source code.
+
+  \item We are mostly interested in linear problems, but they are
+  problems with unusual structure.  It is possible to fit those
+  structures into existing finite element codes, but if we have to
+  write new elements, new solver algorithms, \emph{and} new assembly
+  code in order to simulate anchor losses using perfectly matched
+  layers, we get little added benefit to go with the cost and baggage
+  of working inside a commercial code.
+
+  \item We are still discovering which algorithms work well, and would
+  like to be able to prototype our algorithms inside MATLAB.  We also
+  want to be able to run multi-processor simulations outside of
+  MATLAB, both to solve large problems and to run optimization loops.
+  FEMLAB supports a MATLAB interface, but in our experience does not
+  deal well with large simulations.  FEAP also supports a MATLAB
+  interface (which we wrote), and the data structures in \hiq\ and
+  FEAP are similar enough that we can share data between the two
+  programs.
+
+  \item Writing finite element code is fun!
+
+\end{itemize}
+
+The main drawback of developing a new code is that we lack the pre-
+and post-processing facilities of some other programs.
+
+
+\subsection{System architecture}
+\label{section-system-arch}
+
+\hiq\ consists of core modules and elements written in
+C++; third-party numerical software written in C, Fortran, or Minoan
+linear B script; and interfaces to MATLAB and the
+scripting language Lua.  These programmable interfaces are used to
+build both the problem mesh and the solution strategies.
+
+The \emph{mesh object} stores the problem geometry, global force and
+displacement vectors, and boundary conditions.  The mesh also provides
+standard assembly loops to build global tangent stiffnesses and
+residuals from element contributions.
+\emph{Element type} objects calculate local tangent stiffnesses
+and residuals.  The data for one finite element is split between
+an element object (which contains the material type, any
+transformation functions, orientation information, etc.) and the mesh
+object (which contains node assignments, identifier assignment
+for nodal and branch variables, etc.).  Therefore, a single element
+type object can actually be used for many finite elements.
+
+A small collection of numerical algorithms is provided to analyze the
+global system.  Analyses are scripted in MATLAB or Lua.
+
+\devnote{The system does not yet have a clean error-handling
+  mechanism.  It would be nice not to abort on a failed assertion.}
+
+% =================================================================
+
+\section{Mesh container}
+\label{section-mesh}
+
+\subsection{Mesh geometry data}
+
+The mesh layout is described by five arrays:
+\begin{codelist}[branch\_id(*,numelt)]
+  \item[x(ndm,numnp)]     Describe node positions
+  \item[ix(nen,numelt)]   Map element node numbers to global node numbers
+  \item[id(ndf,numnp)]    Map nodal dofs to global equation numbers
+  \item[branch\_id(*,numelt)]   Map branch dofs to equation numbers
+  \item[etypes(numelt)]   Map element numbers to element types
+\end{codelist}
+where
+\begin{codelist}[numelt]
+  \item[numnp] is the number of nodal points
+  \item[numelt] is the number of elements
+  \item[ndm] is the (maximum) spatial dimension
+  \item[ndf] is the (maximum) number of dofs per node
+  \item[nen] is the (maximum) number of element nodes
+\end{codelist}
+
+Most elements will need no branch variables, but some elements may
+use a few branch variables, such as Lagrange multipliers used to
+enforce some constraint relations between nodal variables.  We also
+have in mind the possibility of ``superelements,'' automatically
+constructed reduced models of system subcomponents which might involve
+many internal degrees of freedom.  Consequently, the
+\ttt{branch\_id} array has a variable first dimension.  The
+\ttt{nbranch\_id} array keeps track of how many branch variables are
+allocated to each element.
+
+The \ttt{branch\_id} and \ttt{id} arrays are implemented as
+subsections of a single global array.  But the accessors provided by
+the mesh class treat the \ttt{branch\_id} array as a
+two-dimensional array in which the first dimension magically can have
+different lengths for each value of the second index; and that is how
+the programmer should usually think about it.
+
+\devnote{It might be worth changing the \ttt{ix} array as having
+  variable first dimension, if we ever get a superelement that
+  connects to many nodes.}
+
+
+\subsection{Force, displacement, and boundary data}
+
+The mesh object also contains global displacement, velocity,
+acceleration, force, and boundary condition vectors.  These vectors
+are not allocated until after the geometry is completely described and
+the mesh is initialized, since until then we do not now how big they
+should be.  From the programmer perspective, the arrays are
+%\begin{codelist}[branchu(*,numelt)]
+\begin{codelist}
+
+  \item[u(ndf,numnp)]
+    Describe node displacements (\ttt{v} and \ttt{a} similarly
+    describe velocities and accelerations).
+
+  \item[f(ndf,numnp)]    
+    Describe node forces.
+
+  \item[branchu(*,numelt)]
+    Describe branch displacements (\ttt{branchv} and
+    \ttt{brancha} give velocities and accelerations).  The
+    structure of \ttt{branchu} parallels the structure of
+    \ttt{branch\_id}.
+
+  \item[branchf(*,numelt)]
+    Describe branch forces.  The structure of \ttt{branchf}
+    parallels the structure of \ttt{branch\_id}.
+
+  \item[bc(ndf,numnp)]
+    Boundary code to describe whether a nodal variable is subject to
+    Dirichlet (displacement) or Neumann (force) boundary conditions.
+    Entries of \ttt{bc} can be zero (no boundary condition); 'u'
+    (specified displacement); or 'f' (specified force).
+
+  \item[bv(ndf,numnp)]
+    Values of boundary forces and displacements for those node variables
+    subject to boundary conditions.
+
+\end{codelist}
+As before, the implementation inside the mesh class involves more
+details, but they should be unimportant to someone who simply wants to
+use mesh objects.
+
+To accommodate complex forces and displacements, there are actually
+three accessors for each of the numerical arrays listed above.  For
+example \ttt{u} actually refers to the real part of the
+displacement; \ttt{ui} is the imaginary part of the displacement,
+and \ttt{uz} can be used to get both parts of the displacement at
+once.  The mesh class provides methods to set and get each of these
+arrays element-by-element.
+
+There is no array of boundary conditions for branch variables.  Branch
+variables are supposed to describe internal state for the element, not
+things that can be shared with the rest of the world (whether ``the
+rest of the world'' is a boundary or the element next door).
+
+
+\subsection{Describing the geometry}
+\label{section-geometry-description}
+
+There are two primitive operations to add to the mesh geometry:
+\begin{codelist}
+
+  \item[add\_node(x,n)]
+    Adds \ttt{n} nodes with positions listed consecutively in the
+    array \ttt{x}, and returns the identifier of the first node.
+
+  \item[add\_element(e,etype,n,nen)]
+    Adds \ttt{n} elements of type \ttt{etype} with node lists of
+    length \ttt{nen} listed consecutively in the array \ttt{e},
+    and returns the identifier of the first element added.
+
+\end{codelist}
+By default, both routines add one entry at a time, and the
+default node list length is the global maximum \ttt{nen}.
+
+The \ttt{add\_block} methods allow you to add Cartesian blocks of
+elements.  These methods take the range of $x$, $y$, and possibly $z$
+coordinates and the number of points along an edge in each direction,
+and construct a mesh of the brick $[x_{\min}, x_{\max}] \times
+[y_{\min}, y_{\max}] \times [z_{\min}, z_{\max}]$.  It is possible to
+remap the bricks later by directly manipulating the mesh \ttt{x}
+array.  Each element has a specified order, and the number of points
+along each edge should be one greater than a multiple of that order.
+For instance, for a mesh of $n_x$ by $n_y$ biquadratic elements
+(\ttt{order = 2}), the mesh node counts should be $2n_x + 1$ by
+$2n_y + 1$.
+
+The mesh class also has a \ttt{tie} method which ``merges'' nodes
+which are close to each other.  The \ttt{tie} method takes a
+tolerance and an optional range of nodes to try to tie together.  If
+\ttt{tie} finds that nodes $i$ and $j$ in the specified range are
+within the given tolerance of each other, the \ttt{ix} array is
+rewritten so that references to either $i$ or $j$ become references to
+$\min(i,j)$.
+
+The \ttt{tie} method acts as though the relation ``node $i$ is
+within the tolerance of node $j$'' were an equivalence relation.  But
+while this relation is reflexive and symmetric, it does \emph{not}
+have to be transitive for general meshes: that is, if $x_i$, $x_j$,
+and $x_k$ are three node positions, you might have
+\[
+  \|x_i - x_j\| < \mathrm{tol} \mbox{ and }
+  \|x_j - x_k\| < \mathrm{tol} \mbox{ and }
+  \|x_i - x_k\| > \mathrm{tol}.
+\]
+The behavior of the \ttt{tie} algorithm is undefined in this case.
+Make sure it does not happen in your mesh.
+
+\devnote{The right thing to do here is to make the semantics explicit
+  (by using the transitive closure of the above relationship, for
+  instance) and warn the user if there were any places where the
+  behavior of the tie command is not obvious.}
+  
+
+\subsection{Initializing the mesh}
+
+After the mesh geometry has been created, the \ttt{initialize}
+routine of the mesh should be called in order to allocate space for
+forces, displacements, and boundary data.  The \ttt{initialize}
+method also assigns global equation numbers to nodal and branch dofs;
+these numbers can be reassigned (for example after adding new
+Dirichlet boundary conditions) by calling \ttt{assign\_ids}.
+
+\devnote{Should there be a flag to track whether the mesh has been
+  initialized (and holler otherwise)?}
+
+
+\subsection{Manipulating force, displacement, and boundary data}
+
+In addition to the element-by-element getters and setters described
+earlier, there are getters and setters which assign the displacement
+(and velocity and acceleration) and force vectors as a whole.  These
+setters and getters map data to and from the \emph{reduced} vector
+rather than the full vector; for instance, the \ttt{set\_u} command
+will copy an array of \ttt{numid} entries into the position vector,
+using the \ttt{id} array to map the global equation number (the
+index in the reduced vector passed by the user) to the appropriate
+nodal or branch variable in the mesh \ttt{u} array.  In addition,
+\ttt{set\_u} copies values from the boundary value array for those
+variables which are subject to Dirichlet boundary conditions (and
+therefore do not have a corresponding global number in the reduced
+system).
+
+The \ttt{make\_harmonic} function is useful for specifying
+Dirichlet boundary conditions for time-harmonic problems.  Given a
+forcing frequency $\omega$, \ttt{make\_harmonic} sets the velocity
+and acceleration appropriately to $v := i \omega u$ and $a :=
+-\omega^2 u$.
+
+The \ttt{set\_bc} function is used to specify a Lua function to be
+used to compute the boundary codes and values at each point.  The
+function passed to \ttt{set\_bc} is not called until the mesh is
+initialized with the \ttt{initialize} command.  The function can be
+later re-applied by calling the \ttt{apply\_bc} command; this may be
+useful, for instance, if the boundary conditions depend on some global
+parameter or parameter from a closure, which can be changed in a loop
+to re-analyze a device with several different boundary configurations.
+
+The Lua function passed to \ttt{set\_bc} should take as input the
+coordinates of the nodal point (the number depends on \ttt{ndm}),
+and should return a string describing which variables at that node are
+subject to force or displacement boundary conditions.  If there are
+any nonzero boundary conditions, they should be specified by
+additional return arguments.  For example, the following function
+applies zero displacement boundary conditions to the first degree of
+freedom and nonzero force conditions (of $-1$) to the third degree of
+freedom along the line $x = 0$:
+\begin{verbatim}
+  function bcfunc(x,y)
+    if x == 0 then return 'u f', 0, -1; end
+  end
+\end{verbatim}
+If no boundary condition is specified (as occurs at $x \neq 0$ in the
+above example), then we assume that there is no boundary condition.
+If a boundary condition \emph{is} specified, but without a specific
+value, then we assume the corresponding force or displacement should
+be zero.  Run time errors result in a user warning, as described in
+Section~\ref{section-lua-error-handling}.
+
+
+\subsection{Global assembly loops}
+
+The global system of equations has the form
+\begin{equation}
+  R(u,v,a) = F_{\mathrm{BC}}.
+\end{equation}
+For MEMS resonator models, $R$ will usually be a linear function of
+$u$, $v$, and $a$; but the code allows nonlinear elements, too.
+There are three global assembly functions provided by the mesh object:
+\begin{codelist}
+
+  \item[assemble\_dR(K,cx,cv,ca)] 
+    Assemble a linear combination of the stiffness ($dR/du)$, damping
+    ($dR/dv)$, and mass ($dR/da$) matrices into a dynamic stiffness
+    matrix $K$.
+
+  \item[assemble\_dR(cx,cv,ca)]
+    Assemble a linear combination of stiffness, damping, and mass and
+    return it in a new \ttt{CSCMatrix} object.
+
+  \item[assemble\_R]
+    Assemble the global residual $R$ into the internal $F$ field.
+
+
+  \item[get\_sense(L,func,su,sf,is\_reduced)]
+    Use the Lua function \ttt{func} in the Lua state \ttt{L} to create
+    displacement and force vectors to build displacement (\ttt{su})
+    and force (\ttt{sf}) vectors to be used as alternate drive
+    patterns or as sense patterns.  Either \ttt{sf} or \ttt{su} may be
+    null.  If \ttt{is\_reduced} is true (the default), then the vectors
+    are created using the reduced set of variables after Dirichlet boundary
+    conditions have been eliminated.  Otherwise, the vectors will have
+    \ttt{ndf}-by-\ttt{numnp} entries.
+
+    The Lua function should have the same form as the boundary condition
+    function described in the previous section.
+
+\end{codelist}
+
+The provided global assembly functions do nothing the user could not
+do through more primitive calls to the element functions.  Other
+global assembly loops (for example, loops to assemble lists of
+stresses at element Gauss points) can be coded explicitly by the user.
+
+
+\subsection{Ownership management}
+
+The mesh object can take ownership of a Lua interpreter and of a
+collection of element type objects: that is, the mesh object can take
+responsibility for deallocating those objects when the mesh is
+destroyed.  The \ttt{own} methods tell the mesh to take ownership
+of a Lua interpreter or element type.  Note that the mesh can be
+assigned ownership of any number of element types, but it should only
+be assigned ownership of \emph{one} Lua interpreter.  Calling
+\ttt{own(lua\_State*)} twice is a checked error.
+
+
+% =================================================================
+
+\section{Element interface}
+\label{section-element-interface}
+
+As described in Section \ref{section-system-arch}, the storage for an
+element in \hiq\ is split between two classes.  Information about
+material properties or other information that might be shared among
+many elements is stored in an element type object; the geometry of
+individual elements, though, is stored in the mesh object.  The
+methods of an element type object implicitly receive a pointer to the
+element type (in the \ttt{this} pointer) and explicitly receive the
+mesh pointer (\ttt{mesh}) and the element identifier
+(\ttt{eltid}).  Omitting the \ttt{mesh} and \ttt{eltid}
+pointers from the argument lists, these are the methods in the
+\ttt{Element} interface:
+\begin{codelist}
+
+  \item[initialize]
+    Do any element-specific initialization tasks and allocate any
+    branch variables (by setting \ttt{mesh.nbranch(eltid)}).  This
+    routine is called when the element is first added to the mesh.
+
+  \item[assign\_ids]
+    Mark any variables used by the element.  To mark the $i$th
+    variable for node $j$, for instance, set \ttt{mesh.id(i,j)} to
+    some nonzero value.
+
+  \item[assemble\_dR(K,cx,cv,ca)]
+    Add a linear combination of the element stiffness, damping, and
+    mass matrices (with coefficients \ttt{cx}, \ttt{cv}, and
+    \ttt{ca}) to the global stiffness assembler \ttt{K}.
+    See Section~\ref{section-sparse-assembly} for a description of how
+    the assembler object works.
+
+  \item[assemble\_R]
+    Add the element residual into \ttt{mesh.f}.
+
+  \item[stress(X,stress)] 
+    Compute the stresses for an element at parent coordinates
+    \ttt{X} and store them in the \ttt{stress} array.  Returns
+    a pointer to the end of \ttt{stress} (after the information
+    written by the element).
+
+  \item[gauss\_stress(stress)]
+    Call \ttt{stress} repeatedly to compute the stress at the Gauss
+    points (local \ttt{y} index varies fastest).
+
+\end{codelist}
+
+% =================================================================
+
+\section{Numerical routines}
+
+
+\subsection{Coordinate matrices and assembly}
+\label{section-sparse-assembly}
+
+The \ttt{CoordMatrix} class stores a sparse matrix in
+\emph{coordinate format}; that is $A$ is stored as a list of tuples
+$(i, j, A_{ij})$.  The \ttt{CoordMatrix} class is slightly unusual
+in that it allows the same coordinates to be listed multiple times;
+the data fields for tuples with identical coordinates are summed to
+get the final matrix entry value.  Consequently, \ttt{CoordMatrix}
+is useful for assembling system matrices.
+
+The \ttt{CoordMatrix} class supports the following methods:
+\begin{codelist}
+
+  \item[add(eltid,n,Ke)] 
+    Adds an \ttt{n}-by\ttt{n} element contribution to the global
+    matrix.  In MATLAB notation, this operation is
+    \begin{verbatim}
+  A(eltid,eltid) = A(eltid,eltid) + Ke
+    \end{verbatim}
+
+  \item[pack]
+    Packs the coordinate list into a standard form (only one tuple per
+    matrix entry).  After \ttt{pack} is called, the coordinate
+    entries are sorted in column-major order.  Pack is automatically
+    called (if needed) before calls to \ttt{to\_sparse} and
+    \ttt{to\_coord}.
+    
+  \item[to\_sparse(jc,ir,pr,pi)]
+    Store a compressed sparse column representation of the matrix in
+    the arguments.  
+
+  \item[to\_sparse()]
+    Return a \ttt{CSCMatrix} representation (see \ref{section-cscmatrix}).
+
+\end{codelist}
+
+
+\subsection{Sparse matrices and linear solves}
+\label{section-cscmatrix}
+
+The \ttt{CSCMatrix} class is a container for a square matrix stored
+in \emph{compressed sparse column} format (with zero-based indexing).
+This is the default format used by MATLAB to store matrices
+internally; it is also the default format for UMFPACK.
+\begin{codelist}[Az]
+  \item[Ax]  Nonzeros in $A$, listed column by column (real part)
+  \item[Az]  Nonzeros in $A$, listed column by column (imag part).
+             May be null to indicate a real matrix.
+  \item[jc]  An array of $n+1$ zero-based indices indicating where
+    each column starts in \ttt{Ax}, \ttt{Az}, and \ttt{ir}.
+    The last entry of \ttt{jc} is the total number of nonzeros
+  \item[ir]  Row numbers of the nonzeros listed in $Ax$ and $Az$
+    (zero-based)
+  \item[n]   Number of rows and columns in $A$
+\end{codelist}
+The \ttt{CSCMatrix} class supports operations to apply $A$ or
+$A^{-1}$ to a vector: 
+\begin{codelist}[apply(x,y)]
+ \item[factor]      Factor the matrix using UMFPACK
+ \item[solve(x,b)]  Solve $Ax = b$ using UMFPACK.  If $A$ is complex,
+   then $x$ and $b$ must be complex as well.
+ \item[apply(x,y)]  Form $y = Ax$
+\end{codelist}
+If the matrix is not already factored at the time of a \ttt{solve}
+command, the \ttt{factor} method will be called automatically.
+
+The \ttt{CSCMatrix} class supports the following constructors:
+\begin{codelist}
+  \item[CSCMatrix(jc,ir,Ax,Az,n,copy\_flag=0)]
+    Create a new matrix from the given parameters.  For a real matrix,
+    \ttt{Az == NULL}.  If \ttt{copy\_flag} is true, the constructor
+    will make local copies of the indexing and data arrays.
+
+  \item[CSCMatrix(n,nnz,is\_real=0)]
+    Create a new matrix of the given size.  If \ttt{is\_real} is false,
+    allocate storage for an imaginary component as well.
+
+  \item[CSCMatrix(matrix)]
+    Create a copy of \ttt{matrix}.  The newly constructed object will
+    have a local copy of the indexing and data arrays.
+
+\end{codelist}
+
+\devnote{It would also be nice to re-use symbolic factorizations for
+  re-analysis tasks.}
+
+
+\subsection{Modal analysis with ARPACK}
+\label{section-eigs}
+
+ARPACK is a sparse eigenvalue solver that uses the Arnoldi method to
+compute a few eigenvalues and vectors for a large matrix.  ARPACK
+provides several drivers, including drivers for real or complex,
+symmetric or nonsymmetric, and standard or generalized problems.
+However, the ARPACK drivers for the generalized eigenvalue problem
+only work when the mass matrix is symmetric positive-definite (or
+Hermitian positive-definite in the complex case).  For more general
+mass matrices, the caller must reformulate the problem as a standard
+eigenvalue problem to use ARPACK.
+
+ARPACK uses a reverse communication pattern: that is, it sets a flag
+when it returns to indicate whether it is done or whether it needs the
+main program to perform some task, such as multiplying by a mass or
+stiffness matrix.  This communication pattern is very powerful
+(particularly for a Fortran 77 program), but it can also be cryptic.
+We have two routines that specifically run ARPACK for complex
+generalized eigenproblems:
+\begin{codelist}
+
+  \item[compute\_eigs(Kshift,M,n,nev,ncv,d,v,ldv)]
+    Computes \ttt{nev} eigenpairs, stored in \ttt{d} and
+    \ttt{v}, of the matrix pencil $((K-\sigma M), M)$.  The
+    \ttt{Kshift} object is an \ttt{UMFsolve} factorization
+    object, which is actually used to apply $(K-\sigma M)^{-1}$.  Uses
+    a restarted shift-invert Arnoldi strategy with restart size
+    \ttt{ncv}.
+
+  \item[compute\_eigs(mesh,w0,nev,ncv,dr,di)] 
+    Computes \ttt{nev} characteristic complex frequencies (in
+    radians/s), stored in (\ttt{dr}, \ttt{di}), of the pencil $(K,M)$
+    defined by the \ttt{mesh} system matrices.  Looks specifically for
+    eigenvalues near the shift frequency \ttt{w0} (in radians/s).
+    Uses a restarted shift-invert Arnoldi strategy with restart size
+    \ttt{ncv}.
+
+\end{codelist}
+
+\devnote{ARPACK's reverse communication strategy is appropriate for
+  Fortran 77, but it's less appropriate to C++.  In C++, unlike in
+  Fortran 77, it's possible to pass an object which contains all the
+  state needed to describe the problem, and which has a method to
+  multiply by $M$ or by $K$ or by whatever else.  A more general way
+  to wrap ARPACK nicely for use with C++ is to use this sort of
+  function object; c.f. ARPACK++.
+}
+
+\devnote{It would be nice to have classes that provide reasonable
+  defaults for the ARPACK options, but allow you to meddle if you
+  want.  It would also be nice to have a wrapper for the symmetric
+  positive definite case (at least) in order to get accurate shifts
+  for the generalized case.
+}
+
+
+\subsection{Gaussian quadrature routines}
+
+The following routines return node positions and weights for $n$-point
+Gauss quadrature rules on $[-1,1]$, where $1 \leq n \leq 10$:
+\begin{codelist}[gauss\_weight(i, npts)]
+  \item[gauss\_point(i,npts)]   Return the \ttt{i}th node position
+  \item[gauss\_weight(i,npts)]  Return the \ttt{i}th node weight
+\end{codelist}
+
+
+% =================================================================
+
+\section{Helper routines}
+
+
+\subsection{Output to OpenDX}
+\label{section-opendx}
+
+OpenDX (the Open Data eXplorer) is a freely-available scientific
+visualization package that evolved from IBM's Data Explorer package.
+OpenDX dataset description files are organized hierarchically: a
+\emph{field} comprises several \emph{components} (arrays with some
+metadata).  The file format is flexible, and the actual data arrays
+can be stored inline (as text or binary) or in a separate binary
+file.  If the last few sentences were incomprehensible, consult the
+well-written OpenDX documentation, which is freely available online.
+
+The \ttt{DXFile} class helps construct an OpenDX dataset where the
+metadata and data are stored in separate files.  \ttt{DXFile}
+provides the following methods:
+\begin{codelist}
+
+ \item[DXFile(basename)]
+   Opens files ``\ttt{basename}.dx'' and ``\ttt{basename}.bin''
+   to store the DX data set.  The files are closed when the
+   \ttt{DXFile} object is destroyed.
+
+ \item[start\_array(m,n,A)]
+   Start a new 2D array object (size \ttt{m}-by-\ttt{n}) out of the
+   data in \ttt{A}, stored in column major format.  Returns a numeric
+   identifier for the created array object.  The \ttt{A} array can be
+   NULL, in which case subsequent calls to the \ttt{write} method
+   should be used to write out the data elements.  Note that if
+   \ttt{A} is NULL, you will have to use typecasts to tell the
+   compiler which flavor of data you meant
+   (e.g. \ttt{start\_array(2,10, (int*) NULL)} starts a 2-by-10 array
+   of integer data).
+
+   It is a checked error to end an array before the required number of
+   data items are written.
+
+ \item[write(x)]
+   Write an array element \ttt{x}.
+
+ \item[array\_attribute(key,value)]
+   Add metadata to an array object.  See the OpenDX manual for a
+   description of how different metadata fields are interpreted by the
+   visualization tool.
+
+ \item[end\_array]
+   End the array.
+
+ \item[start\_field(name)]
+   Start a new field with the given name.  After starting a new field,
+   add any field components (the corresponding arrays should be
+   defined \emph{before} you call \ttt{start\_field}) and then call
+   \ttt{end\_field}.  Calling the routines out-of-order or failing
+   to call \ttt{end\_field} will probably result in an unusable file.
+
+ \item[field\_component(name,id)]
+   Add a component to a field.  The \ttt{name} is the text name for
+   the component; \ttt{id} is the numeric identifier returned by
+   \ttt{start\_array}.
+
+ \item[end\_field]
+   End a field.
+
+ \item[writemesh(mesh)]
+   Write an OpenDX file for the mesh object.  More specifically,
+   \ttt{writemesh} writes out the following items:
+   \begin{enumerate}
+
+    \item A position array of size \ttt{ndm}-by-\ttt{numnp}
+          with attribute ``dep = positions.''
+
+    \item A connectivity array of node indices associated with each
+          quad to be displayed.  The number of quads can be greater
+          than the number of elements; for instance, a mesh of
+          nine-node quad elements would have four four-node quads per
+          element in the DX data set.  This routine currently assumes
+          all elements in the mesh are the same size, and that they
+          are all quads with tensor-product shape functions.  This
+          array has attributes ``element type = quads'' and ``ref =
+          positions.''
+
+    \item A field called mesh with components ``positions'' (object 1)
+          and ``connections'' (object 2).
+
+   \end{enumerate}
+   The \ttt{writemesh} function will not work correctly if you call
+   it after writing some other array or field first.  However, you can
+   write new arrays and fields after a call to \ttt{writemesh} in
+   order to add data about displacements or energy fluxes in addition
+   to the basic node positions and connectivities.
+
+\end{codelist}
+
+% =================================================================
+
+\section{Element library}
+
+
+\subsection{Quad and brick node ordering}
+
+\begin{figure}
+  \begin{center}
+    \begin{picture}(100,120)(-50,-60)
+      \put(-40,-40){\framebox(80,80)}
+      \put(-45,-45){\makebox(0,0){1}}
+      \put(-45, 45){\makebox(0,0){2}}
+      \put( 45,-45){\makebox(0,0){3}}
+      \put( 45, 45){\makebox(0,0){4}}
+    \end{picture}
+    \hspace{1cm}
+    \begin{picture}(100,120)(-50,-60)
+      \put(-40,-40){\framebox(80,80)}
+      \put(-45,-45){\makebox(0,0){1}}
+      \put(-45,  0){\makebox(0,0){2}}
+      \put(-45, 45){\makebox(0,0){3}}
+      \put(  0,-45){\makebox(0,0){4}}
+      \put(  0,  0){\makebox(0,0){5}}
+      \put(  0, 45){\makebox(0,0){6}}
+      \put( 45,-45){\makebox(0,0){7}}
+      \put( 45,  0){\makebox(0,0){8}}
+      \put( 45, 45){\makebox(0,0){9}}
+    \end{picture}
+  \end{center}
+  \caption{Node ordering for 4-node and 9-node quads}
+  \label{figure-quad-order}
+\end{figure}
+
+The current shape function library supports bilinear, biquadratic, and
+bicubic quads; and trilinear, triquadratic, and tricubic bricks.  The
+ordering is non-standard.  For quads, the nodes are listed in
+increasing order by their coordinates, with the $y$ coordinate varying
+fastest.  For example, for 4-node and 9-node quads, we use the
+ordering shown in Figure~\ref{figure-quad-order}.  The ordering in the
+3D case is similar, but with the $z$ coordinate varying fastest, the
+$y$ coordinate second-fastest, and the $x$ coordinate most slowly.
+
+So long as the ordering in the spatial domain is consistent with the
+ordering in the parent domain, the isoparametric mapping will be
+well-behaved (so long as element distortion is not too great).  The
+\ttt{add\_block} commands described in Section
+\ref{section-geometry-description} produce node orderings which are
+consistent with our convention.
+
+The primary advantage of the node ordering we have chosen is that it
+becomes trivial to write loops to construct 2D and 3D tensor product
+shape functions out of simple 1D Lagrangian shape functions.  Also, it
+becomes simple to write the loops used to convert a mesh of higher
+order elements into four-node quads or eight-node bricks for
+visualization (see Section~\ref{section-opendx}).
+
+\devnote{Currently, the number of Gauss points used by the element
+  library is fixed at compile time.  It might be wise to allow the
+  user to change that.}
+
+
+\subsection{PML elements}
+
+\emph{Perfectly matched layers} (PMLs) are layers subject to
+complex-value coordinate transformations which are used to mimic the
+effect of an infinite or semi-infinite medium.  PMLs fit naturally
+into a finite element framework, but to implement them, we need some
+way to describe the exact form of the coordinate transformation.
+The \ttt{PMLElement} class is derived from the standard
+\ttt{Element} class (see Section
+\ref{section-element-interface}), and defines two additional methods
+for describing the coordinate-stretching function used in a PML:
+\begin{codelist}
+
+  \item[set\_stretch(L,s)]
+    Use a Lua function to describe the coordinate transformation.  The
+    function is stored in the Lua interpreter \ttt{L} at stack
+    index \ttt{s}.  It is not applied immediately, but only when
+    the stretching function is actually evaluated; consequently, the
+    Lua interpreter should \emph{not} be destroyed before the last
+    call to the element methods for computing local residuals and
+    tangents.
+
+    The coordinate stretching function in 2D should have the form
+    \begin{verbatim}
+  function stretch(x,y)
+    -- Compute stretching parameters sx and sy
+    return sx, sy
+  end
+    \end{verbatim}
+    If no stretch values are returned, they are assumed to be zero.
+    The PML element should stretch the $x$ and $y$ coordinates by
+    $(1-is_x)$ and $(1-is_y)$, respectively.  The 3D case is handled
+    similarly.
+
+    The stretching function is only ever evaluated at node positions.
+
+  \item[set\_stretch(stretch,ndm,nen)]
+    Use the \ttt{ndm}-by-\ttt{nen} array \ttt{stretch} to
+    look up the stretch function values at the nodes.
+
+\end{codelist}
+If there are no calls to either form of \ttt{set\_stretch}, the PML
+element does not stretch the spatial coordinate at all, and so the
+element behaves exactly like an ordinary (non-PML) element.
+
+
+\subsection{Laplace elements}
+
+The \ttt{PMLScalar2d}, \ttt{PMLScalar3d}, and \ttt{PMLScalarAxis}
+classes implement scalar wave equation elements with an optional PML.
+If no coordinate stretching is defined, the elements will generate
+standard (real) mass and stiffness matrices.
+\begin{codelist}
+
+  \item[PMLScalar2d(kappa,rho,nen)] 
+    Creates an isotropic 2D scalar wave equation element with material
+    property $\kappa$ and mass density $\rho$.  The number of element
+    nodes \ttt{nen} must be 4 (bilinear), 9 (biquadratic), or 16
+    (bicubic).
+
+  \item[PMLScalar2d(D,rho,nen)]
+    Creates a 2D anisotropic element with a 2-by-2 property matrix
+    \ttt{D}.  Other than the material properties, this constructor is
+    identical to the previous one.
+
+  \item[PMLScalarAxis(kappa,rho,nen)]
+    Creates an isotropic axisymmetric scalar wave equation element
+    with material property $\kappa$ and mass density $\rho$.  The
+    number of element nodes \ttt{nen} must be 4 (bilinear), 9
+    (biquadratic), or 16 (bicubic).
+
+  \item[PMLElasticAxis(D,rho,nen)]
+    Creates a 2D anisotropic element with a 2-by-2 property matrix
+    \ttt{D}.  Other than the material properties, this constructor is
+    identical to the previous one.
+
+  \item[PMLScalar3d(kappa,rho,nen)] 
+    Creates an isotropic 3D scalar wave equation element with material
+    property $\kappa$ and mass density $\rho$.  The number of element
+    nodes \ttt{nen} must be 8 (trilinear), 27 (triquadratic), or 64
+    (tricubic).
+
+  \item[PMLScalar3d(D,rho,nen)]
+    Creates a 3D anisotropic element with a 3-by-3 property matrix
+    \ttt{D}.  Other than the material properties, this constructor is
+    identical to the previous one.
+
+\end{codelist}
+
+
+\subsection{Elastic elements}
+
+The \ttt{PMLElastic2d}, \ttt{PMLElastic3d}, and \ttt{PMLElasticAxis}
+classes implement elasticity elements with an optional PML
+transformation.  The classes provides the following constructors:
+\begin{codelist}
+
+  \item[PMLElastic2d(E,nu,rho,plane\_type,nen)]
+    Creates a plane strain (\ttt{plane\_type = 0}) or plane stress
+    (\ttt{plane\_type = 1}) isotropic elasticity element with
+    Young's modulus \ttt{E}, Poisson ratio \ttt{nu}, and mass
+    density \ttt{rho}.  The number of element nodes \ttt{nen}
+    must be 4 (bilinear), 9 (biquadratic), or 16 (bicubic).
+
+  \item[PMLElastic2d(D,rho,nen)]
+    Creates a 2D element with a 3-by-3 elastic property matrix
+    \ttt{D}.  Other than the elastic properties, this constructor
+    is identical to the previous one.
+
+  \item[PMLElasticAxis(E,nu,rho,nen)]
+    Creates an isotropic axisymmetric elasticity element with
+    Young's modulus \ttt{E}, Poisson ratio \ttt{nu}, and mass
+    density \ttt{rho}.  The number of element nodes \ttt{nen}
+    must be 4 (bilinear), 9 (biquadratic), or 16 (bicubic).
+
+  \item[PMLElasticAxis(D,rho,nen)]
+    Creates an element with a 4-by-4 elastic property matrix
+    \ttt{D}.  Other than the elastic properties, this constructor
+    is identical to the previous one.
+
+  \item[PMLElastic3d(E,nu,rho,nen)] 
+    Creates an isotropic 3D elasticity element with Young's modulus
+    \ttt{E}, Poisson ratio \ttt{nu}, and mass density
+    \ttt{rho}.  The number of element nodes \ttt{nen} must be 8
+    (trilinear), 27 (triquadratic), or 64 (tricubic).
+
+  \item[PMLElastic3d(D,rho,nen)]
+    Creates an element with a 6-by-6 elastic property matrix
+    \ttt{D}.  Other than the elastic properties, this constructor
+    is identical to the previous one.
+
+\end{codelist}
+
+
+% =================================================================
+
+\section{Lua interfaces}
+
+Lua is a language invented at PUC-Rio in Brazil.  The Lua language and
+standard libraries are very lightweight, enough so that the complete
+Lua interpreter library can be statically linked into the \hiq\
+executable without much space penalty.  Lua is well-suited as a
+scripting language for a finite element code for the following
+reasons:
+\begin{itemize}
+
+  \item The syntax is very simple, and is reminiscent of Pascal.  The
+    complete EBNF grammar for the language fits on one page.
+
+  \item The language supports dynamic typing, first-class functions,
+    and other features which are useful in concisely describing meshes
+    and numerical algorithms.
+
+  \item The interpreter uses a reasonably fast stack-based bytecode
+    machine.  The overhead of calling a function at every node in a
+    mesh, for example, is not too onerous.  (This is a large part of
+    why Lua is popular for game scripting.)
+
+  \item The interpreter provides native support for C/C++ user types.
+
+  \item Lua was designed as an extension language (as compared to some
+    languages which are effective as steering languages or as
+    extensible languages, but which are difficult to force into
+    secondary modules).  It is possible to instantiate multiple
+    interpreters simultaneously; calls to and from C++ are simple and
+    fast; and it is very simple to call Lua from within a MATLAB MEX
+    file.
+
+  \item Lua is licensed under a variant of the MIT license, and can be
+    used for both commercial and academic purposes at no cost.
+
+\end{itemize}
+
+\hiq\ uses version 5 of the Lua language system.  The Lua interpreter
+and libraries are included in the \ttt{tools} subdirectory of the
+\hiq\ build tree.
+
+
+\subsection{Automatic binding}
+
+\ttt{tolua} is a tool to automatically bind Lua to C or C++.
+\ttt{tolua} takes a cleaned header file as input, and generates
+code to automatically add bindings to the listed C/C++ functions and
+data objects.  Type checking is performed automatically.
+
+Most of \ttt{tolua}'s functionality is described in the
+\ttt{tolua} manual (though the manual has not been updated since
+version 3.2).  However, one piece of functionality is \emph{not} well
+described in the user manual: the ability to pass native Lua objects
+to C/C++ codes.  For example, the cleaned header file used to bind the
+\ttt{PMLElement} class methods to Lua contains the line
+\begin{verbatim}
+  void set_stretch(lua_State* L, lua_Object func);
+\end{verbatim}
+which corresponds to the C++ function
+\begin{verbatim}
+  void set_stretch(lua_State* L, int func);
+\end{verbatim}
+With this binding, Lua can call \ttt{set\_stretch} as
+\begin{verbatim}
+  mesh:set_stretch(stretchfun)
+\end{verbatim}
+and the C++ function will automatically receive a pointer to the Lua
+interpreter together with the Lua stack location of the function object.
+Thus, \ttt{tolua} makes it easy to pass a Lua callback to a C++ function.
+
+One other feature makes Lua callbacks simple to implement: the
+registry table.  Since a Lua function does not correspond to any
+simple C++ object, we cannot just store a pointer to the Lua function
+in a field in the C++ class.  The most obvious way to store the
+callback would be to store its name as a string; this can cause
+problems, though, if the user would like to define a transformation
+using an anonymous (lambda) function -- a surprisingly useful thing to
+do -- or if the user would like to use a function which is not defined
+in the global scope.  However, Lua provides a \emph{registry} table
+which is accessible only from compiled code.  So to store a Lua
+callback, we write a registry table entry keyed by the \ttt{this}
+pointer of the corresponding C++ object.
+
+See the \ttt{PMLElement} implementation for a simple example of
+the type of callback described above.
+
+
+\subsection{Modifying automatically bound interfaces}
+
+When \ttt{tolua} creates binding code for a class, it builds a table
+with the same name as the class.  This table is attached to each bound
+instance of the class as a Lua metatable -- that is, the Lua
+interpreter will check the class table for fields that it cannot find
+in the instance table (such as methods).  This lookup is almost
+identical to vtable lookup for virtual functions in C++. A natural way
+to add methods to the Lua version of the class is to add functions to
+this class table.  These new methods can replace methods for which the
+automatically generated binding does not naturally fit, or add new
+methods which take advantage of Lua features.  For example, the
+binding of the \ttt{QArray} matrix class in Lua contains the Lua code
+\begin{verbatim}
+  function QArray:size()
+    return self:m(), self:n()
+  end
+\end{verbatim}
+which adds a \ttt{size} method with two return values to the Lua code.
+
+
+\subsection{Error handling in Lua callbacks}
+\label{section-lua-error-handling}
+
+Lua uses a \ttt{setjmp} / \ttt{longjmp}-based error handling
+scheme internally.  A C function calling into Lua has two options for
+handling errors: it can use \ttt{lua\_call}, in which case any
+errors generated are thrown by \ttt{longjmp} up the stack to be
+caught by the next available handler; or it can use
+\ttt{lua\_pcall}, which returns a status code and, in case of an
+error, pushes a string describing the error onto the Lua stack.  The
+\ttt{lua\_pcall} function also allows an error handler to be defined.
+
+The callbacks in \hiq\ use a small wrapper around \ttt{lua\_pcall},
+called \ttt{lua\_pcall2}.  \ttt{lua\_pcall2} acts the same as
+\ttt{lua\_pcall} except when an error occurs.  If there is an
+error, \ttt{lua\_pcall} calls the Lua function \ttt{\_ALERT} (if
+it is defined) to show the message; otherwise, it prints the message
+to \ttt{stderr} using the C \ttt{fprintf} function.  In either
+case, the error message string is removed from the stack before
+control is returned to \ttt{lua\_pcall2}'s caller.
+
+As a matter of policy, \hiq\ code that uses callbacks should make
+every effort to provide reasonable default behaviors (including a
+diagnostic message) if the user-defined Lua code does something silly.
+
+
+\subsection{Using Lua with MATLAB}
+
+When Lua is used from within the MATLAB environment, it should not
+print to \ttt{stderr} and \ttt{stdout}, since those streams are
+not redirected to the MATLAB GUI window.  The \ttt{luamex} package
+in the MATLAB interface code, which is automatically included when a
+Lua interpreter is instantiated from MATLAB, re-defines \ttt{print}
+and the \ttt{\_ALERT} function (see
+Section~\ref{section-lua-error-handling}) in terms of MATLAB's
+\ttt{mexPrintf} function.
+
+The functions in the \ttt{luasupport} package allow MATLAB dense or
+sparse matrices to be passed back and forth to Lua.  MATLAB dense
+arrays are converted to and from \ttt{QArray} objects, and MATLAB
+sparse matrices are converted to and from \ttt{CSCMatrix} objects.
+
+
+\subsection{Automatically bound interfaces}
+
+The Lua interface includes bindings to the following classes and
+functions described previously:
+\begin{codelist}
+  \item The mesh object
+  \item The element library
+  \item The \ttt{CoordMatrix} assembler
+  \item The \ttt{CSCMatrix} class
+  \item The \ttt{DXFile} class 
+  \item The mesh version of \ttt{compute\_eigs}
+\end{codelist}
+
+\devnote{The \ttt{compute\_eigs} binding, like
+  \ttt{compute\_eigs} as a whole, is something of a hack.  The
+  right way to handle this is probably to bind ARPACK directly to Lua
+  a la MATLAB's eigs.  However, this ``right way'' would probably also
+  have at least a few days programming cost.}
+
+
+\subsection{Transformed block generation in Lua}
+
+The Lua binding of the \ttt{Mesh} class contains two additional block
+generators beyond those in the C++ binding:
+\begin{codelist}
+
+  \item[add\_block\_transform(m,n,p,order,func)] 
+    Creates a 3D (or 2D if \ttt{p} is omitted) quad block with node
+    positions on $[-1,1]^n$ and transforms them using the specified
+    function.
+
+  \item[add\_block\_transform(m,n,p,order,pts)] 
+    Creates a 3D (or 2D if \ttt{p} is omitted) quad block with node
+    positions on $[-1,1]^n$ and transforms them using an isoparametric
+    mapping with points specified in the \ttt{pts} array.  For
+    example, for \ttt{pts = \{0,0, 0,1, 1,0, 1,1\}}, we would get a
+    mesh for $[0,1]^2$.
+    
+\end{codelist}
+
+
+\subsection{Dense matrices in Lua}
+
+\ttt{tolua} wraps arrays whose sizes can be easily computed, but it
+passes those arrays through Lua tables.  Lua tables are an inefficient
+way to store long vectors, so we introduce a small container class
+\ttt{QArray} to manipulate array data more efficiently.
+
+\ttt{QArray} objects may either manage their own storage, or they can
+point to another array for their storage.  The latter mode is useful
+for functions like \ttt{eigs}, which require another program to
+manipulate some part of a workspace array.  \ttt{QArray}s can be real,
+complex, or complex stored in two parts, and they can be accessed
+using either zero-based or one-based indexing.  These options are set
+when the \ttt{QArray} is constructed, and can be retrieved later; they
+are controlled by the following variables:
+\begin{codelist}[base]
+  \item[m]     Number of rows
+  \item[n]     Number of columns
+  \item[type]  Type of matrix data
+    \begin{codelist}
+      \item[type == 0]  Real matrix
+      \item[type == 1]  Complex data stored in one array
+      \item[type == 2]  Complex data stored in two arrays
+    \end{codelist}
+  \item[base]  First index (0 for C-style, 1 for Fortran/MATLAB-style)
+\end{codelist}
+The \ttt{QArray} class provides the following methods:
+\begin{codelist}[set(i,j,xr,xi=0)]
+  \item[set(i,j,xr,xi=0)]  Set real and imaginary parts of the $ij$ entry
+  \item[get(i,j)]  Get the real part of the $ij$ entry
+  \item[geti(i,j)] Get the imaginary part of the $ij$ entry
+\end{codelist}
+
+\devnote{Should there be separate \ttt{setr} and \ttt{seti} methods so
+  that it's possible to write just the real component without zeroing out
+  the imaginary component?}
+
+\devnote{Should check to make sure the user can't chain together
+  assignments in such a way as to refer to an allocated block after it
+  has been deleted.}
+
+
+\subsection{Sparse matrices in Lua}
+
+The Lua \ttt{CSCMatrix} binding is similar to the C++ class, but
+differs in that it uses \ttt{QArray} objects to pass vectors.  The
+methods provided in the Lua binding are
+\begin{codelist}[spply(x,b)]
+  \item[n()]         Return the matrix size
+  \item[apply(x,y)]  Compute $y = Ax$
+  \item[solve(x,b)]  Solve $Ax = b$
+  \item[apply(x)]    Compute $y = Ax$
+  \item[solve(b)]    Solve $Ax = b$
+\end{codelist}
+
+
+
+% =================================================================
+
+\section{MATLAB interfaces}
+\label{section-matlab-interface}
+
+
+\subsection{Automatic binding}
+
+The \ttt{matwrap} program is a Perl program which generates MATLAB
+wrappers based on C/C++ header files.  The project was inspired by the
+SWIG wrapper generator, with extensions to make it easier to interface
+to matrix-oriented languages.  Beside MATLAB, \ttt{matwrap} also
+automatically generates output for Octave and Tela.
+
+We have made a number of modifications to \ttt{matwrap}:
+\begin{enumerate}
+  \item \textbf{Package files}
+
+  The original version of \ttt{matwrap} accepts only header files,
+  which it expects to be valid C/C++ header files which can be
+  included in the generated wrapper.  However, the \ttt{matwrap}
+  parser is not sophisticated, and it deals poorly with templates,
+  preprocessor macros, inline functions, and various other
+  syntactically complicated things.  We therefore introduce package
+  files (\ttt{pkg} extension), cleaned header files analogous to those
+  used in \ttt{tolua}.  \ttt{matwrap} will only use the package file
+  to generate wrappers; it will not attempt to include the file as a
+  header file for the wrapper code.
+
+  \item \textbf{Inlined sources}
+
+  To support package files, we need some way to include the
+  \emph{actual} headers in the wrapper file.  We extended
+  \ttt{matwrap} so that lines in a package file which begin with a
+  dollar sign are included near the beginning of the wrapper code.
+  For example, in \ttt{foo.pkg}, we might have the line
+  \ttt{\$\#include ``foo.h''}.
+
+  \item \textbf{Inlined function files}
+
+  Package files may contain MATLAB function definitions inline,
+  delimited by \ttt{\$[} and \ttt{\$]}.  \ttt{matwrap} generates a
+  MATLAB M-file named based on the first function definition in the
+  bracketed text.
+
+  \item \textbf{Direct manipulation of MATLAB objects}
+
+  It is sometimes useful to directly work with MATLAB objects that
+  have no standard C++ counterparts: sparse matrices are a good
+  example.  Package files can refer to \ttt{m\_Object}s to pass
+  unprocessed MATLAB \ttt{mxArray} values to or from a wrapped
+  function.  Like wrappers involving strings, wrappers that involve
+  mutable \ttt{m\_Object}s cannot be vectorized.
+
+\end{enumerate}
+
+Method wrappers generated for MATLAB use a full name and an explicit
+\ttt{this} pointer.  For example, to call method \ttt{foo()} of
+class \ttt{Bar}, a MATLAB user would write
+\begin{verbatim}
+  Bar_foo(barobj);
+\end{verbatim}
+\ttt{matwrap} does not deal well with methods which have the
+same name and differ only in type signature.  When this problem
+occurs, we currently write an additional layer of thin C++ wrappers
+which really serve only to give the function a new name and thereby
+break the aliasing effect.
+
+\ttt{matwrap} is installed in the \hiq\ \ttt{tools} subdirectory.
+
+\devnote{Ideally, we would like to use MATLAB's OO facilities to save
+  explicitly typing the class name on every method invocation.  This
+  would mostly involve mechanically re-writing generated functions,
+  with one exception: we would either need to provide additional code
+  for explicit casting between compatible types, or we would need to
+  let MATLAB know about the inheritance relationships in the C++
+  code.  Since \ttt{matwrap} generates wrappers that know about
+  those relationships, the right way to deal with this might again be
+  to rewrite part of \ttt{matwrap}.  The current -- very slick --
+  scheme is to represent objects as pointers, in which the real part
+  contains the actual pointer data and the imaginary part contains a
+  type code.}
+
+\devnote{It's too easy to create leaks in MATLAB.  Should there be a
+  registry for mesh objects so we can say ``clear all allocated
+  meshes'' and have the right thing happen?  What about error conditions?}
+
+
+\subsection{Automatically bound interfaces}
+
+The same interfaces that are automatically bound to Lua are also
+automatically bound to MATLAB.  In addition, several methods are
+defined which allow MATLAB to manipulate a Lua interpreter:
+\begin{codelist}
+
+  \item[Lua\_open]      
+    Return a pointer to a new Lua interpreter \ttt{L}
+
+  \item[Lua\_close(L)]  
+    Close the Lua interpreter
+
+  \item[Lua\_dofile(L,filename)]
+    Execute a Lua file
+
+  \item[Lua\_set\_mesh(L,name,mesh)]
+    Assign a mesh object to a Lua global
+
+  \item[Lua\_get\_mesh(L,name)]
+    Retrieve a mesh object from a Lua global
+
+  \item[Lua\_set\_string(L,name,s)]
+    Assign a string to a Lua global
+
+  \item[Lua\_set\_double(L,name,x)]
+    Assign a number to a Lua global
+
+\end{codelist}
+The Lua object interface is used in the MATLAB \ttt{Mesh\_load}
+function:
+\begin{codelist}
+
+  \item[Mesh\_load(filename,p)]
+    Creates a Lua interpreter and executes the named file in order to
+    generate a mesh object (which is returned).  The mesh should be
+    named ``mesh''; if such an object is undefined on output,
+    \ttt{Mesh\_load} returns an error message.  Before executing
+    the named file, \ttt{Mesh\_load} copies the entries of the
+    structure \ttt{p}, which may only be strings or doubles, into
+    the Lua global state; in this way, it is possible to vary mesh
+    parameters from MATLAB.
+
+\end{codelist}
+
+
+\subsection{Eigencomputations}
+
+The MATLAB sparse eigensolver routine \ttt{eigs} is actually an
+interface to ARPACK (see Section~\ref{section-eigs}).  We express all
+frequencies in radians/s rather than Hertz.  We provide one function
+to compute complex frequencies and associated mode shapes for PML
+eigenvalue problems:
+\begin{codelist}
+
+  \item[pml\_mode(M,K,w0,nmodes,opt)]
+    Find the requested number of modes closest in frequency to
+    \ttt{w0}.  Return an array of mode shapes, a vector of complex
+    frequencies, and a vector of $Q$ values.  Options are 
+    \begin{codelist}[use\_umfpack]
+      \item[use\_matlab]  Use MATLAB's eigs rather than ARPACK?
+      (default: false)
+      \item[use\_umfpack]  Use UMFPACK with MATLAB eigs, if present?
+      (default: true)
+      \item[disp]  Verbosity level? (default: 0)
+    \end{codelist}
+
+\end{codelist}
+
+
+\subsection{Energy flux computations}
+
+The \ttt{compute\_flux2d} and \ttt{compute\_flux3d} compute
+time-averaged energy flux vector fields.  These routines are
+themselves in flux.
+
+\devnote{The interface to assemble the list of stresses at Gauss nodes
+  changed since I wrote the \ttt{compute\_flux} functions.  These
+  functions need to be brought up to date.}
+
+
+\subsection{Model reduction}
+
+There is currently one model reduction routine in the MATLAB support
+files for \hiq.  As before, all frequencies are expressed in radians/s
+rather than Hz.
+\begin{codelist}
+
+  \item[rom\_arnoldi(M,K,l,b,kk,w0,opt)] Takes \ttt{kk} steps of
+    shift-and-invert Arnoldi to form a basis for the Krylov subspace
+    $\mathcal{K}_k\left( (K-(2 \pi \omega_0)^2 M)^{-1} M, b \right)$
+    in order to form a reduced system to estimate the system transfer
+    function.  Returns reduced matrices $M_k$, $K_k$, $l_k$, and
+    $b_k$, along with the projection basis $V_k$.  If
+    \ttt{opt.realbasis} is set to true (default is false), then the
+    projection will use a real basis for the span of $[\Re(V_k),
+    \Im(V_k)]$.  To do this, the matrix $[\Re(V_k), \Im(V_k)]$ will be
+    orthonormalized using an SVD, and vectors corresponding to values
+    less than \ttt{opt.realtol} (default $10^{-8}$) will be dropped.
+
+\end{codelist}
+
+\subsection{Plotting}
+
+There are several plotting routines for viewing the behavior of 2D
+meshes:
+\begin{codelist}
+
+  \item[plotmesh(mesh,opt)]  Plots a given mesh.  Options are
+    \begin{codelist}
+      \item[anchors]  Marker for nodes with displacement BC
+	(default: \ttt{'g+'})
+      \item[forces]   Marker for nodes with force BC
+	(default: \ttt{'r+'})
+      \item[deform]   Deform mesh according to first to fields of $u$?
+	(default: false)
+      \item[clf]      Clear the figure before display?
+        (default: true)
+    \end{codelist}
+
+  \item[plotcycle2d(mesh,s,opt)]
+    Plot an animation of the motion of the mesh.  The amplitude of
+    motion is scaled by the factor \ttt{s} (which defaults to one
+    if it is not provided).  The frames can be written to disk as a
+    sequence of PNG files to make a movie later.
+    The following options can be set through the \ttt{opt} structure
+    \begin{codelist}[framepng]
+      \item[framepng] Format string for movie frame files (default: [])
+      \item[nframes]  Number of frames to be plotted (default: 32)
+      \item[fpcycle]  Frames per cycle (default: 16)
+      \item[startf]   Start frame number (default: 1)
+      \item[fpause]   Pause between re-plotting frames (default: 0.25)
+      \item[cscale]   Color all fields on the same scale? (default: false)
+      \item[ufields]  Fields to use for displacement 
+	(default: \ttt{[1 2]})
+      \item[ufields]  Fields to use for coloring
+	(default: \ttt{[1 2]})
+      \item[axequal]  Use equal axes in plots? (default: false)
+      \item[subplot]  Subplot setup (default: \ttt{[length(cfields), 1]})
+    \end{codelist}
+\end{codelist}
+The element array defined inside the mesh object cannot immediately be
+used inside the plot routines.  The following utility function
+rearranges the connectivity array into a form that plays nicely with
+MATLAB's plotting routines (see also Section~\ref{section-opendx}):
+\begin{codelist}
+
+  \item[plotelt2d(e)]
+    Returns a ``flattened'' version of the element connectivity array
+    \ttt{e} for use with the plotting routine.  The flattened
+    element array will contain the same number of entries as elements
+    in the bilinear case, but biquadratic and bicubic elements will be
+    converted into lists of four or nine 4-node panels.  The
+    rearranged panels follow a counterclockwise node ordering.
+
+\end{codelist}
+In addition, there is a function for viewing Bode plots:
+\begin{codelist}
+
+  \item[plot\_bode(freq,H,opt)]
+    Plots a Bode plot.  \ttt{H} is the transfer function evaluated
+    at frequency points \ttt{freq}.  The option structure \ttt{opt}
+    may contain the following options:
+    \begin{codelist}[magnitude]
+    \item[usehz]     Assume \ttt{freq} is in Hz (default: false)
+    \item[logf]      Use a log scale on the frequency axis (default: false)
+    \item[magnitude] Plot magnitude only (default: false)
+    \item[visualQ]   Visually compute $Q$ for the highest peak (default: false)
+    \item[lstyle]    Set the line style for the plot (default: \ttt{'b'})
+    \end{codelist}
+    For example, to plot a reduced model Bode plot on top of an exact
+    Bode plot, we might use the following code:
+    \begin{verbatim}
+  figure(1); hold on
+  opt.logf = 1;
+  opt.lstyle = 'b' ; plot_bode(freq_full, H_full, opt);
+  opt.lstyle = 'r:'; plot_bode(freq_rom,  H_rom,  opt);
+  hold off
+    \end{verbatim}
+
+\end{codelist}
+It is also possible to simultaneously show a deformed mesh and a Bode
+plot with a marker indicating the excitation frequency.
+\begin{codelist}
+  \item[plotmesh\_bode(mesh,f,H,fcurrent,opt)]
+    Plot the deformed mesh and create a Bode plot.  The \ttt{opt}
+    field is passed through to \ttt{plotmesh}.
+\end{codelist}
+
+\end{document}

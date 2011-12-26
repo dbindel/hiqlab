@@ -1,0 +1,297 @@
+\clearpage
+\section{Non-dimensionalization}
+The solution to involving coupled fields can
+cause computational difficulties to the various
+physical time scales that existent. As a result
+the magnitude of the entries in the matrices can
+vary tremendously, leading to very ill-conditioned
+matrices. To circumvent this problem, non-dimensionalization
+of dimensional parameters is conducted. 
+
+\subsection{Incorporating non-dimensionalization}
+Non-dimensionalization can easily be incorporated in the
+analysis by specifying the functions summarized in 
+Table~\ref{table:FunctionsNonDimensionalConstants}
+at the beginning of the input file immediately
+after the mesh construction. The only thing that the
+user must take care is on which functions return 
+dimensionalized values and which do not. Generally,
+values which are intermediate results are returned in
+non-dimensionlized form and those that are the final
+results are dimensionalized. For instance, an array
+returning just the free degrees of freedom would be 
+non-dimensionalized as opposed to an array of nodal 
+degrees of freedom at every node in the mesh would be 
+dimensionalized.  
+These are summarized in Tables 
+\ref{table:DimensionalizingFunctions} and
+\ref{table:NondimensionalizingFunctions}.
+Thus if values are extracted from the arrays \ttt{disp}
+or \ttt{force} obtained from,
+\begin{verbatim}
+      disp = Mesh_get_disp(mesh);
+      force= Mesh_get_force(mesh);
+\end{verbatim}
+they will be in their dimensional form. Also extraction
+of desired quantaties by multiplying \ttt{disp} or \ttt{force}
+with the sense vectors obtained from,
+\begin{verbatim}
+      sense_disp_vec = Mesh_get_sense_disp(mesh,'disp_func');
+      sense_force_vec= Mesh_get_sense_force(mesh,'force_func');
+\end{verbatim}
+will also result in dimensional results.
+
+Vectors \ttt{U} or \ttt{F} obtained through,
+\begin{verbatim}
+      U = Mesh_get_u(mesh);
+      F = Mesh_assemble_k(mesh) * U;
+\end{verbatim}
+will contain only the free dofs in their nondimensional form.
+But multiplication of these vectors with the sense vectors
+obtained through,
+\begin{verbatim}
+      sense_u_vec = Mesh_get_sense_u(mesh,'u_func');
+      sense_f_vec = Mesh_get_sense_f(mesh,'f_func');
+\end{verbatim}
+will give dimensional results. 
+
+See example of a MEMS cantilever in the Examples manual for
+details on how to use these functions. 
+
+\begin{table}[htbp]
+\caption{Functions to evaluate non-dimensional constants}
+\label{table:FunctionsNonDimensionalConstants}
+\vspace{0.1in}
+\centering
+\begin{tabular}{l|m{2in}|l|l}
+\hline
+\multicolumn{1}{c|}{\tbf{Function name}} & 
+\multicolumn{1}{c|}{\tbf{Required fields}}&
+\multicolumn{1}{c|}{\tbf{Key constants}} & 
+\multicolumn{1}{c}{\tbf{Aux constants}} \\
+\hline
+\hline
+\ttt{mech\_nondim(mtype,cL)} &
+\ttt{mtype.E}, \ttt{mtype.nu}, \ttt{mtype.rho}, \ttt{cL} &
+\ttt{M,L,T} &
+\ttt{F} \\
+\hline
+\ttt{ted\_nondim(mtype,cL)} &
+\ttt{mtype.E},  \ttt{mtype.nu}, \ttt{mtype.rho}, 
+\ttt{mtype.at}, \ttt{mtype.cp}, \ttt{mtype.kt}, 
+(\ttt{mtype.T0} or \ttt{dim\_scales.T0}), \ttt{cL} &
+\ttt{M,L,T,Th} &
+\ttt{F,Qt} \\
+\hline
+\ttt{pz\_nondim(mtype,cL)} & 
+\ttt{mtype.E},  \ttt{mtype.nu}, \ttt{mtype.rho}, 
+\ttt{mtype.kds}, \ttt{mtype.d}, \ttt{cL} &
+\ttt{M,L,T,A} &
+\ttt{F,V,Q,E,R} \\
+\hline
+\ttt{em\_nondim(mtype,cL,(eps))} &
+\ttt{mtype.E},  \ttt{mtype.nu}, \ttt{mtype.rho}, 
+\ttt{mtype.kds}, \ttt{mtype.d}, \ttt{cL}, 
+(\ttt{eps} or \ttt{mtype.eps} or \ttt{dim\_scales.eps})&
+\ttt{M,L,T,A} &
+\ttt{F,V,Q,E,R} \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Returns dimensional quantaties}
+\label{table:DimensionalizingFunctions}
+\begin{tabular}{|l|m{3in}|}
+\hline
+function name & value returned \\
+\hhline{|=|=|}
+\ttt{Mesh\_x.m}                &  A coordinate of a specific node \\
+\ttt{Mesh\_get\_x.m}           &  Array of nodal coordinates      \\
+\hline
+\ttt{Mesh\_get\_disp.m}        &  Array of nodal displacements    \\
+\ttt{Mesh\_get\_force.m}       &  Array of nodal forces           \\
+\hline
+\ttt{Mesh\_get\_sense\_disp.m} &  Sense vector for nodal displacements \\
+\ttt{Mesh\_get\_sense\_force.m}&  Sense vector for nodal forces        \\
+\hline
+\end{tabular}
+\end{table}
+\begin{table}[htbp]
+\centering
+\caption{Returns non-dimensional quantaties}
+\label{table:NondimensionalizingFunctions}
+\begin{tabular}{|l|m{3in}|}
+\hline
+function name & value returned \\
+\hhline{|=|=|}
+\ttt{Mesh\_get\_u.m}           & Vector of displacement free dofs       \\
+\ttt{Mesh\_set\_u.m}           & Set a vector of displacement free dofs \\
+\hline
+\ttt{Mesh\_assemble\_k.m}            &Assemble stiffness matrix \\
+\ttt{Mesh\_assemble\_mk.m}           &Assemble mass and stiffnes  matrices \\
+\ttt{Mesh\_assemble\_mkc.m}          &Assemble mass,stiffness, and damping matrices \\
+\ttt{Mesh\_assemble\_dR.m}           &Assemble gradient of residual \\
+\ttt{Mesh\_assemble\_R.m}            &Assemble residual\\
+\hline
+\ttt{Mesh\_get\_sense\_u.m}    & Sense vector for displacement free dofs\\
+\ttt{Mesh\_get\_sense\_f.m}    & Sense vector for force free dofs       \\
+\ttt{Mesh\_get\_drive\_f.m}    & Drive vector for force free dofs       \\
+\ttt{Mesh\_get\_sense\_globals\_u.m} &Sense vector for displacement global variable free dofs\\
+\ttt{Mesh\_get\_sense\_globals\_f.m} &Sense vector for force global variable free dofs \\
+\ttt{Mesh\_get\_sense\_globals\_f.m} &Sense vector for force global variable free dofs \\
+\ttt{Mesh\_get\_drive\_elements\_u.m}&Drive vector for displacement element variable free dofs\\
+\ttt{Mesh\_get\_sense\_elements\_f.m}&Sense vector for force global variable free dofs \\
+\ttt{Mesh\_get\_drive\_elements\_f.m}&Drive vector for force global variable free dofs \\
+\hline
+\end{tabular}
+\end{table}
+
+
+\clearpage
+\subsection{Compute non-dimensionalizing constants}
+
+Depending on the fields that are involved, there are 
+currently four functions shown in 
+Table~\ref{table:FunctionsNonDimensionalConstants}
+which compute the non-dimensionalizing
+constants given representative material parameters and geometry.
+The key constants are, \ttt{M}(mass), \ttt{L}(length),
+\ttt{T}(time), \ttt{A}(current), and \ttt{Th}(temperature),
+which are essential in non-dimensionalizing the appropriate fields.
+The auxiliary constants, \ttt{F}(force), \ttt{Qt}(thermal flux),
+\ttt{V}(voltage), \ttt{Q}(charge), \ttt{E}(e-field), and
+\ttt{R}(resistance), are derived from these key constants.
+Their dimensions are presented in 
+Table~\ref{table:DimensionsOfAuxiliaryVariables}.
+
+\begin{table}[htbp]
+\caption{Dimensions of auxiliary variables}
+\label{table:DimensionsOfAuxiliaryVariables}
+\vspace{0.1in}
+\centering
+\begin{tabular}{c|l|c|c|c|c|c}
+\hline
+\multicolumn{1}{c|}{\tbf{Variable name}} &
+\multicolumn{1}{c|}{\tbf{Field name}} &
+\ttt{M} & \ttt{L} & \ttt{T} & \ttt{Th} & \ttt{A} \\ 
+\hline
+\hline
+\ttt{F} & force        &  1 &  1 & -2 & - & - \\
+\hline
+\ttt{Qt}& thermal flux &  1 &  - & -3 & - & - \\
+\hline
+\ttt{Q} & current      &  - &  - &  1 & - & 1 \\
+\ttt{V} & voltage      &  1 &  2 & -3 & - &-1 \\
+\ttt{E} & e-field      &  1 &  1 & -3 & - &-1 \\
+\ttt{R} & resistance   &  1 &  2 & -3 & - &-2 \\
+\hline
+\end{tabular}
+\end{table}
+
+Further details on how these are computed from the material 
+properties are presented below in the codelist.
+\begin{codelist}
+  \item[mech\_nondim(mtype,cL)]
+    Computes characteristic scales (\ttt{M,L,T}) and dimensional 
+    quantaties (\ttt{F}) from a 
+    table of material properties \ttt{mtype} and characteristic length
+    scale \ttt{cL}, which are used for non-dimensionalization in a 
+    mechanical problem. \ttt{mtype} must have the fields 
+    \ttt{rho}(mass density) and \ttt{E} (Youngs modulus).
+    \begin{eqnarray}
+      \text{M} &=& \text{rho} * \text{cL}^3 \nonumber \\ 
+      \text{L} &=& \text{cL}                \nonumber \\
+      \text{T} &=& \frac{\text{cL}}{\sqrt{\text{E/rho}}} \nonumber 
+    \end{eqnarray}
+    A table named \ttt{dim\_scales} with these fields is returned. 
+  \item[ted\_nondim(mtype,cL)] 
+    Computes characteristic scales (\ttt{M,L,T,Th}) and dimensional 
+    quantaties (\ttt{F,Qt}) from a 
+    table of material properties \ttt{mtype} and characteristic length
+    scale \ttt{cL}, which are used for non-dimensionalization in a 
+    mechanical problem. \ttt{mtype} must have the fields 
+    \ttt{rho}(mass density) and \ttt{E} (Youngs modulus),
+    \ttt{at}(linear coefficient of thermal expansion), 
+    \ttt{cp}(specific heat at constant pressure),
+    and \ttt{T0}(ambient temperature).
+    \begin{eqnarray}
+      \text{M} &=& \text{rho} * \text{cL}^3 \nonumber \\ 
+      \text{L} &=& \text{cL}                \nonumber \\
+      \text{T} &=& \frac{\text{cL}}{\sqrt{\text{E/rho}}} \nonumber \\
+      \text{Th}&=& \frac{\text{T0 * at * E}}{\text{rho*cp}} \nonumber
+    \end{eqnarray}
+    A table named \ttt{dim\_scales} with these fields is returned.
+  \item[pz\_nondim(mtype,cL)] 
+    Computes characteristic scales (\ttt{M,L,T,A}) and dimensional 
+    quantaties (\ttt{F,V,Q,E,R}) from a 
+    table of material properties \ttt{mtype} and characteristic length
+    scale \ttt{cL}, which are used for non-dimensionalization in a 
+    piezoelectric mechanical problem. \ttt{mtype} must have the fields 
+    \ttt{rho}(mass density) and \ttt{E} (Youngs modulus),
+    \ttt{kds}(permitivity at constant stress), 
+    and \ttt{d}(piezoelectric strain coefficients).
+    \begin{eqnarray}
+      \text{M} &=& \text{rho} * \text{cL}^3 \nonumber \\ 
+      \text{L} &=& \text{cL}                \nonumber \\
+      \text{T} &=& \frac{\text{cL}}{\sqrt{\text{E/rho}}} \nonumber \\
+      \text{A} &=& \frac{\text{kds * cL}^2}{\text{d * T}} \nonumber 
+    \end{eqnarray}
+    A table named \ttt{dim\_scales} with these fields is returned.
+  \item[em\_nondim(mtype,cL,(eps))] 
+    Computes characteristic scales (\ttt{M,L,T,A}) and dimensional 
+    quantaties (\ttt{F,V,Q,E,R}) from a 
+    table of material properties \ttt{mtype} and characteristic length
+    scale \ttt{cL}, which are used for non-dimensionalization in a 
+    electromechanical problem. \ttt{mtype} must have the fields 
+    \ttt{rho}(mass density) and \ttt{E} (Youngs modulus),
+    and \ttt{eps}(permitivity at constant stress).
+    \begin{eqnarray}
+      \text{M} &=& \text{rho} * \text{cL}^3 \nonumber \\ 
+      \text{L} &=& \text{cL}                \nonumber \\
+      \text{T} &=& \frac{\text{cL}}{\sqrt{\text{E/rho}}} \nonumber \\
+      \text{A} &=& \frac{\text{eps * E * cL}^3}{\text{T}} \nonumber
+    \end{eqnarray}
+\end{codelist}
+
+\subsection{Non-dimensionalize material parameters}
+\begin{codelist}
+  \item[material\_normalize(ftype,...)]
+    Non-dimensionalizes all arguments \ttt{...} by the the dimensional
+    scale \ttt{dim\_scales[ftype]}. \ttt{ftype} must be a string corresponding
+    to a characteristic scale (\ttt{M,L,T,Th,A}) or a dimensional quantaty
+    \ttt{F,V,Q,E,R,Qt,etc.} that has been predefined in the table 
+    \ttt{dim\_scales}. If such a field does not exist, 
+    \ttt{dim\_scales[ftype]} is assumed one. The number of input arguments
+    will be returned.
+  \item[mech\_material\_normalize(m)]
+    Non-dimensionalizes the mechanical fields of the material \ttt{m} 
+    given as a table by the characteristic scales defined in \ttt{dim\_scales}, 
+    and returns a table with ONLY these mechanical fields. There is no 
+    restriction on the fields existing in \ttt{m}, but only the fields,
+    \ttt{rho, E, lambda, mu, alpha, c11, c12, c13, c33, c55} will be 
+    non-dimensionalized. 
+    If a field in \ttt{dim\_scales} does not exist, it
+    will be assumed one. 
+  \item[ted\_material\_normalize(m)]
+    Non-dimensionalizes the thermomechanical fields of the material \ttt{m} 
+    given as a table by the characteristic scales defined in \ttt{dim\_scales}, 
+    and returns a table with ONLY these thermomechanical fields. There is no 
+    restriction on the fields existing in \ttt{m}, but only the fields,
+    \ttt{rho, E, lambda, mu, alpha, at, cp, kt, T0} will be 
+    non-dimensionalized.
+    If a field in \ttt{dim\_scales} does not exist, it
+    will be assumed one. 
+  \item[pz\_material\_normalize(m)]
+    Non-dimensionalizes the piezoelectric-mechanical fields of the 
+    material \ttt{m} 
+    given as a table by the characteristic scales defined in \ttt{dim\_scales}, 
+    and returns a table with ONLY these piezoelectric-mechanical fields. 
+    There is no 
+    restriction on the fields existing in \ttt{m}, but only the fields,
+    \ttt{rho, c11, c12, c13, c33, c55, d16, d31, d33, kds1, kds3} will be 
+    non-dimensionalized.
+    If a field in \ttt{dim\_scales} does not exist, it
+    will be assumed one. 
+\end{codelist}
