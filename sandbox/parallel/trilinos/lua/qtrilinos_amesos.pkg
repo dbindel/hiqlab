@@ -1,0 +1,83 @@
+$#include "Amesos.h"
+$#include "Amesos_BaseSolver.h"
+$#include "Epetra_LinearProblem.h"
+$#include "Epetra_Vector.h"
+$#include "Epetra_CrsMatrix.h"
+$#include "Amesos_Operator_Complex.h"
+$#include "Amesos_Operator.h"
+
+$#include "qtrilinos_amesos.h"
+$#include "qtrilinos_epetra.h"
+
+// ---- Bindings for Amesos_BaseSolver ----
+
+class Amesos_BaseSolver {
+    ~Amesos_BaseSolver();
+    int SymbolicFactorization();
+    int NumericFactorization();
+    int Solve();
+    Epetra_LinearProblem* GetProblem();
+};
+
+Amesos_BaseSolver* qAmesos_BaseSolverCreate
+                    (Epetra_LinearProblem* ELP, int s_type);
+
+// ---- Bindings for Amesos_BaseSolver_Complex ----
+
+class Amesos_BaseSolver_Complex {
+    ~Amesos_BaseSolver_Complex();
+    int SymbolicFactorization();
+    int NumericFactorization();
+    int Solve();
+    Epetra_LinearProblem_Complex* GetProblem();
+};
+
+Amesos_BaseSolver_Complex* qAmesos_BaseSolver_ComplexCreate
+             (Epetra_LinearProblem_Complex* ELP, int s_type);
+
+$[
+
+function Amesos_BaseSolver:new(ELP, s_type)
+  local solver_table = {
+    ['lapack' ] = 0,
+    ['klu'    ] = 1,
+    ['umfpack'] = 2,
+    ['superlu'] = 3,
+    ['superludist'] = 4,
+    ['scalapack'] = 5,
+    ['mumps'] = 6
+  }
+  local solver  = solver_table[string.lower(s_type)] or
+                      error('Unknown solver type ' .. s_type)
+
+  local ABS
+  if (tolua.type(ELP)=='Epetra_LinearProblem') then
+      ABS = qAmesos_BaseSolverCreate(ELP, solver)
+  elseif (tolua.type(ELP)=='Epetra_LinearProblem_Complex') then
+      ABS = qAmesos_BaseSolver_ComplexCreate(ELP, solver)
+  else
+     error('Unknown LinearProblem type')
+  end
+
+  return ABS
+end
+
+$]
+
+// ---- Bindings for Amesos_Operator ----
+
+class Amesos_Operator: public Epetra_Operator {
+    Amesos_Operator(
+                    Epetra_RowMatrix* A,
+                    Epetra_RowMatrix* B, int s_type);
+    ~Amesos_Operator();
+};
+
+// ---- Bindings for Amesos_Operator_Complex ----
+
+class Amesos_Operator_Complex: public Epetra_Operator_Complex {
+    Amesos_Operator_Complex(
+                    Epetra_CrsMatrix_Complex* A,
+                    Epetra_CrsMatrix_Complex* B, int s_type);
+    ~Amesos_Operator_Complex();
+};

@@ -1,0 +1,33 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ *
+ * $Id: coord.pkg,v 1.5 2005/03/30 03:04:18 dbindel Exp $
+ */
+
+$#include "stubs.h"
+$#include "qassembly.h"
+
+class CoordMatrix {
+ public:
+
+    CoordMatrix(int N);
+        //%doc
+        // Create storage for an N-by-N matrix in coordinate form.
+
+    void pack();
+        //%doc
+        // Pack the coordinate matrix representation.
+
+    int get_ncoord();
+        //%doc
+        // Get number of coordinate entries in the matrix.
+        // (When the matrix is packed, this is equal to nnz).
+
+    int get_N();
+        //%doc
+        // Get the dimension of the matrix.
+};
+
+m_Object CoordMatrix_to_sparse(CoordMatrix* matrix);
+        //%doc
+        // Convert a CoordMatrix into a standard MATLAB sparse matrix.

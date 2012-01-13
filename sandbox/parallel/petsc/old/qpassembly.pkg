@@ -1,0 +1,31 @@
+$#include "mesh.h"
+$#include "qpassembly.h"
+
+Mat Mesh_assemble_dR_petsc(Mesh* mesh, double cx, double cv, double ca,
+                           int mat_type_code);
+Vec Mesh_assemble_R_petsc(Mesh* mesh);
+
+$[
+function Mesh:assemble_dR_petsc(cx, cv, ca, mattype)
+  cx = cx or 1
+  cv = cv or 0
+  ca = ca or 0
+  mattype = mattype or 0
+  if mattype then
+    if     mattype == 'seqaij'   then mattype = 0
+    elseif mattype == 'seqbaij'  then mattype = 1
+    elseif mattype == 'mpiaij'   then mattype = 2
+    elseif mattype == 'mpibaij'  then mattype = 3
+    elseif mattype == 'seqsaij'  then mattype = 4
+    elseif mattype == 'seqsbaij' then mattype = 5
+    elseif mattype == 'mpisaij'  then mattype = 6
+    elseif mattype == 'mpisbaij' then mattype = 7
+    end
+  end
+  return Mesh_assemble_dR_petsc(self, cx, cv, ca, mattype)
+end
+
+function Mesh:assemble_R_petsc()
+  return Mesh_assemble_R_petsc(self)
+end
+$]

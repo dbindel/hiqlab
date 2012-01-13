@@ -1,0 +1,96 @@
+$#include "Teuchos_RefCountPtr.hpp"
+$#include "Epetra_CrsMatrix.h"
+$#include "Epetra_Vector.h"
+$#include "qtrilinos_teuchos.h"
+$#include "Teuchos_ParameterList.hpp"
+
+$using namespace Teuchos;
+
+dnl -- Define helper macros --
+
+define(`wrap_parameterlist_set',`
+function ParameterList:set_$1(name,param)
+
+    self.list[name] = param;
+    qParameterList_set_$1(self,name,param)
+
+end')
+
+dnl ---------------------------
+
+// ---- Bindings for Teuchos RefCountPtr ----
+
+class RefCountPtr  {
+
+    TOLUA_TEMPLATE_BIND( T, Epetra_CrsMatrix, Epetra_MultiVector, Epetra_Vector)
+
+    ~RefCountPtr();
+    T* get();
+};
+
+RefCountPtr<Epetra_CrsMatrix>   qCreateRCP_Epetra_CrsMatrix(Epetra_CrsMatrix* ECM);
+RefCountPtr<Epetra_MultiVector> qCreateRCP_Epetra_MultiVector(Epetra_MultiVector* EMV);
+RefCountPtr<Epetra_Vector>      qCreateRCP_Epetra_Vector(Epetra_Vector* EV);
+
+
+// ---- Bindings for Teuchos RefCountPtr ----
+
+class ParameterList {
+    ~ParameterList();
+};
+
+ParameterList* qCreateParameterList();
+void qParameterList_set_string(ParameterList* PL, const string& name, const string& param);
+void qParameterList_set_double(ParameterList* PL, const string& name, double param);
+void qParameterList_set_int   (ParameterList* PL, const string& name, int    param);
+void qParameterList_set_doubles(ParameterList* PL, const string& name, double* param);
+void qParameterList_set_ints(ParameterList* PL, const string& name, int* param);
+
+string qParameterList_get_string(ParameterList* PL, const string& name);
+double qParameterList_get_double(ParameterList* PL, const string& name);
+int    qParameterList_get_int   (ParameterList* PL, const string& name);
+double* qParameterList_get_doubles(ParameterList* PL, const string& name);
+int* qParameterList_get_ints(ParameterList* PL, const string& name);
+
+$[
+
+---- Bindings for Teuchos RefCountPtr ----
+
+RefCountPtr = {}
+function RefCountPtr.new(self,obj)
+
+   local rcp_table= {
+     ['Epetra_CrsMatrix']   = qCreateRCP_Epetra_CrsMatrix,
+     ['Epetra_MultiVector'] = qCreateRCP_Epetra_MultiVector,
+     ['Epetra_Vector']      = qCreateRCP_Epetra_Vector
+   }
+   local obj_type = tolua.type(obj)
+   local rcp_func = rcp_table[obj_type]
+
+   return rcp_func(obj)
+
+end
+
+---- Bindings for Teuchos ParameterList ----
+
+function ParameterList:new()
+
+    local PL = qCreateParameterList()
+    PL.list  = {}
+    return PL
+
+end
+
+wrap_parameterlist_set(`string')
+wrap_parameterlist_set(`double')
+wrap_parameterlist_set(`int')
+wrap_parameterlist_set(`doubles')
+wrap_parameterlist_set(`ints')
+
+function ParameterList:get(name)
+
+    return self.list[name]
+
+end
+
+$]

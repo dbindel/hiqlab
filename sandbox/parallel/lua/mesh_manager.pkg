@@ -1,0 +1,108 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "qarray.h"
+$#include "mesh_manager.h"
+
+// -- Mesh_Manager bindings -------------------------------
+
+class Mesh_Manager {
+
+    Mesh_Manager();
+    ~Mesh_Manager();
+
+    int add_mesh(Mesh_Partition* mesh);
+
+    int compute_numid();
+
+    void set_partition(Mesh_Partitioner* meshp);
+    void initialize();
+    void set_ids(Mesh_Partitioner* meshp);
+    void assemble_R();
+
+    Mesh_Partition* get_mesh(int i);
+    int nummesh();
+};
+
+CSCMatrix* build_csc_matrix(Mesh_Manager* mm, int reduced);
+CSCMatrix* assemble_dR(Mesh_Manager* mm, int cx, int cv, int ca, int reduced=1);
+
+$ inline void get_f(Mesh_Manager* mm, QArray* f)
+$ {
+$     get_f(mm, f->data_r(), f->data_i() );
+$ }
+
+void get_f(Mesh_Manager* mesh, QArray* f);
+
+$[
+function Mesh_Manager.assemble_dR(self,cx,cv,ca,reduced)
+    local reduced = reduced or 1
+    return assemble_dR(self,cx,cv,ca,reduced)
+end
+
+function Mesh_Manager.get_f(self,f)
+    get_f(self,f)
+end
+
+function Mesh_Manager.create_meshes(self,meshp,mesh_f)
+    local meshes = {}
+    local nparts = meshp:get_num_partitions()
+    local ndm    = meshp:get_ndm()
+    for i = 1,nparts do
+        meshes[i] = Mesh_Partition:new(i-1,ndm)
+        self:add_mesh(meshes[i])
+    end
+    self:set_partition(meshp)
+    for i = 1,nparts do
+        meshes[i] = mesh_f(meshes[i])
+    end
+    self:initialize()
+    self:set_ids(meshp)
+end
+
+function Mesh_Manager.delete_meshes(self)
+    local nummeshes = self:nummesh()
+    for i = 1,nummeshes do
+        local lmesh = self:get_mesh(i-1)
+        lmesh:delete()
+    end
+end
+$]
+
+
+// -- Prolongator_Mesh_Manager bindings ---------------------
+
+class Prolongator_Mesh_Manager {
+
+    Prolongator_Mesh_Manager(Mesh_Manager* from, Mesh_Manager* to);
+    ~Prolongator_Mesh_Manager();
+
+    // void set_nemap(int numnp, int* nmp);
+
+    Mesh_Manager* get_from();
+    Mesh_Manager* get_to();
+};
+
+$ inline void Prolongator_Mesh_Manager_set_nemap(Prolongator_Mesh_Manager* pmm, int numnp, int* nemap)
+$ {
+$     pmm->set_nemap(numnp, nemap);
+$ }
+$
+$ inline CSCMatrix* Prolongator_Mesh_Manager_assemble_P(Prolongator_Mesh_Manager* pmm, int reduced)
+$ {
+$     return assemble_P(pmm,reduced);
+$ }
+void Prolongator_Mesh_Manager_set_nemap(Prolongator_Mesh_Manager* pmm, int numnp, int nemap[numnp]);
+CSCMatrix* build_csc_matrix(Prolongator_Mesh_Manager* pmm, int reduced);
+CSCMatrix* Prolongator_Mesh_Manager_assemble_P(Prolongator_Mesh_Manager* pmm, int reduced);
+
+$[
+function Prolongator_Mesh_Manager.set_nemap(self,numnpn,nemap)
+    Prolongator_Mesh_Manager_set_nemap(self,numnpn,nemap);
+end
+
+function Prolongator_Mesh_Manager.assemble_P(self,reduced)
+    return Prolongator_Mesh_Manager_assemble_P(self,reduced)
+end
+$]

@@ -1,0 +1,3 @@
+$#include "trilinos_mesh.h"
+
+void Mesh_SetU_Epetra_MultiVector(Mesh* mesh, Epetra_MultiVector* emv, int ind);

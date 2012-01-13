@@ -1,0 +1,95 @@
+$#include "EpetraExt_RowMatrixOut.h"
+$#include "EpetraExt_MultiVectorOut.h"
+$#include "EpetraExt_VectorOut.h"
+
+$using namespace EpetraExt;
+
+// ---- Bindings for Outputting Epetra_RowMatrix ----
+
+int qRowMatrixToMatrixMarketFile( const char *filename, const Epetra_RowMatrix* A, const char* matrixName=0,
+                                  const char* matrixDescription=0, bool writeHeader=true);
+$ int qRowMatrixToMatrixMarketFile( const char *filename, const Epetra_RowMatrix* A, const char* matrixName=0,
+$                                  const char* matrixDescription=0, bool writeHeader=true)
+$ {
+$     RowMatrixToMatrixMarketFile(filename, *A, matrixName, matrixDescription, writeHeader);
+$ }
+
+int qRowMatrixToMatlabFile( const char *filename, const Epetra_RowMatrix* A);
+$ int qRowMatrixToMatlabFile( const char *filename, const Epetra_RowMatrix* A)
+$ {
+$     RowMatrixToMatlabFile(filename, *A);
+$ }
+
+// ---- Bindings for Outputting Epetra_MultiVector ----
+
+int qMultiVectorToMatrixMarketFile( const char *filename, const Epetra_MultiVector* A,
+                                   const char * matrixName=0,
+                                   const char *matrixDescription=0,
+                                   bool writeHeader=true);
+$ int qMultiVectorToMatrixMarketFile( const char *filename, const Epetra_MultiVector* A,
+$                                   const char * matrixName=0,
+$                                   const char *matrixDescription=0,
+$                                   bool writeHeader=true)
+$ {
+$     MultiVectorToMatrixMarketFile(filename,*A, matrixName, matrixDescription, writeHeader);
+$ }
+
+int qMultiVectorToMatlabFile( const char *filename, const Epetra_MultiVector* A);
+$ int qMultiVectorToMatlabFile( const char *filename, const Epetra_MultiVector* A)
+$ {
+$     MultiVectorToMatlabFile(filename, *A);
+$ }
+
+// ---- Bindings for Outputting Epetra_Vector ----
+
+int qVectorToMatrixMarketFile( const char *filename, const Epetra_Vector* A,
+                              const char * matrixName=0,
+                              const char *matrixDescription=0,
+                              bool writeHeader=true);
+$ int qVectorToMatrixMarketFile( const char *filename, const Epetra_Vector* A,
+$                              const char * matrixName=0,
+$                              const char *matrixDescription=0,
+$                              bool writeHeader=true)
+$ {
+$     VectorToMatrixMarketFile(filename,*A, matrixName, matrixDescription, writeHeader);
+$ }
+
+int qVectorToMatlabFile( const char *filename, const Epetra_Vector* A);
+$ int qVectorToMatlabFile( const char *filename, const Epetra_Vector* A)
+$ {
+$     VectorToMatlabFile(filename, *A);
+$ }
+
+
+$[
+
+function qCrsMatrixToMatrixMarketFile(fname, obj, obj_name, obj_desc)
+
+    local obj = qCrs2RowMatrix(obj)
+    qRowMatrixToMatrixMarketFile(fname, obj, obj_name, obj_desc)
+
+end
+
+
+function ToMatrixMarketFile(fname, obj, obj_name, obj_desc)
+
+   local epetra_table= {
+     ['Epetra_RowMatrix']           = qRowMatrixToMatrixMarketFile,
+     ['Epetra_CrsMatrix']           = qCrsMatrixToMatrixMarketFile,
+     ['Epetra_CrsMatrix_Complex']   = qCrsMatrixToMatrixMarketFile,
+     ['Epetra_MultiVector']         = qMultiVectorToMatrixMarketFile,
+     ['Epetra_MultiVector_Complex'] = qMultiVectorToMatrixMarketFile,
+     ['Epetra_Vector']              = qVectorToMatrixMarketFile,
+     ['Epetra_Vector_Complex']      = qVectorToMatrixMarketFile
+   }
+   local obj_type = tolua.type(obj)
+   local epetra_func = epetra_table[obj_type]
+
+   local obj_name = obj_name or fname
+   local obj_desc = obj_desc or fname
+
+   epetra_func(fname,obj,obj_name,obj_desc)
+
+end
+
+$]

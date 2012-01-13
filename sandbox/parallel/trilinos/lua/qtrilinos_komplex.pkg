@@ -1,0 +1,23 @@
+$#include "trilinos_komplex.h"
+$#include "trilinos_super_matrix.h"
+$#include "trilinos_super_vector.h"
+
+
+class Epetra_Super_CrsMatrix {
+    ~Epetra_Super_CrsMatrix();
+    Epetra_CrsMatrix* GetCrsMatrix();
+};
+
+class Epetra_Super_MultiVector {
+    ~Epetra_Super_MultiVector();
+    Epetra_MultiVector* GetMultiVector();
+};
+
+// -- Bindings for transformation of super matrix and vector
+Epetra_Super_CrsMatrix* Complex2SuperCrsMatrix(Epetra_CrsMatrix_Complex* A,
+                                               int form);
+Epetra_Super_MultiVector* Complex2SuperMultiVector(Epetra_MultiVector_Complex* A,                                               int form);
+Epetra_Super_MultiVector* Complex2SuperMultiVector(Epetra_Vector_Complex* A,                                               int form);
+void Multi2ComplexMultiVector(Epetra_MultiVector* Source,
+                              Epetra_MultiVector_Complex* A,
+                                               int form);

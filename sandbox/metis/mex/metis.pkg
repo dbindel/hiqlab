@@ -1,0 +1,106 @@
+$#include "metisstubs.h"
+
+void metis_PartGraph(int prout, int* xadj, int* adjncy,
+                         int* part, int* edgecut,
+                         int nparts, int wgtflag, int* options,
+                         int nv, int ne, int ncon,
+                         int* vwgt, int nvwgt, int* adjwgt, int nadjwgt);
+                         
+  //%input xadj(nv+1), adjncy(2*ne), vwgt(nvwgt), adjwgt(nadjwgt), options(5)
+  //%output part(nv,1), edgecut(1)
+
+void metis_ND(int prout, int* xadj, int* adjncy,
+                         int* perm, int* iperm,
+                         int* options,
+                         int nv, int ne);
+  //%input xadj(nv+1), adjncy(2*ne), options(8)
+  //%output perm(nv,1), iperm(nv,1)
+
+$[
+function [part, edgecut] = Metis_PartGraph(nparts, xadj, adj, prout, wgtflag, vwgt, adjwgt)
+% [part, edgecut] = Metis_PartGraphKway(nparts, xadj, adj, prout,
+%                                       wgtflag, vwgt, adjwgt)
+% Compute K-way partition using METIS
+% Inputs:
+%   -nparts   Number of partions
+%   -xadj     Adjacency offset of each node
+%   -adj      Adjacency of each node
+%
+% Optional Inputs: 
+%   -prout    Partitioning routine
+%             0: Recursive bisection(Default)
+%             1: K-way
+%   -wgtflag  Constraint algorithm
+%             0: No Weights(vwgt and adjwgt are NULL)
+%             1: Weights on the edge only(vwgt is NULL)
+%             2: Weights on the vertices only(adjwgt is NULL)
+%             3: Weights on both vertices and edges
+%   -vwgt     Vertex weights
+%   -adjwgt   Edge weigthts
+%  
+nv    = length(xadj)-1;
+ne    = length(adj)/2;
+ncon  = 0;
+
+% -- Select partitioning routine
+if nargin < 4
+    prout = 1;  % K-way
+end;
+
+% -- Select constraint algorithm to use
+if nargin < 5
+    wgtflag = 0; 
+end
+
+if wgtflag == 0
+    vwgt   = 0;
+    adjwgt = 0;
+elseif wgtflag == 1
+    adjwgt = vwgt;
+    vwgt   = 0;
+elseif wgtflag == 2
+    adjwgt = 0;
+    ncon   = adjwgt/ne;
+else % wgtflag == 3
+    ncon   = adjwgt/ne;
+end
+
+% -- Select options
+options= [0, 3, 1, 1, 0]';
+
+[part,edgecut] = metis_PartGraph(prout,xadj,adj,nparts,wgtflag,...
+                                 options, nv, ne, ncon, vwgt, adjwgt);
+end
+$]
+
+$[
+function [perm,iperm] = Metis_ND(xadj, adj, prout)
+% [perm, iperm] = Metis_ND(xadj, adj, prout)
+% Compute Multilevel Nested Dissection based reordering using METIS
+% Inputs:
+%   -xadj   Adjacency offset of each node
+%   -adj    Adjacency of each node
+%
+% Optional Inputs:
+%   -prout    Reordering routine
+%             0: Node based(Default)
+%             1: Edge based
+%             
+nv   = length(xadj)-1;
+ne   = length(adj)/2;
+
+% -- Select partitioning routine
+if nargin < 3
+    prout = 0;  %
+end
+
+% -- Select options
+if prout == 0
+  options = [0, 3, 1, 2, 0, 1, 0, 1]';
+elseif prout == 1
+  options = [0, 3, 1, 1, 0, 0, 0, 0]';
+end
+
+[perm,iperm] = metis_ND(prout, xadj, adj, options, nv, ne);
+
+$]

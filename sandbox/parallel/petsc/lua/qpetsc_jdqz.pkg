@@ -1,0 +1,46 @@
+$#include <string>
+$#include "petsc_jdqz.h"
+$#include "petsc_jdqz_structure.h"
+
+class JDQZ_Data {
+    ~JDQZ_Data();
+
+    int get_n();
+    Vec get_revec(int i);
+    Vec get_levec(int i);
+
+    double get_alphar(int i);
+    double get_alphai(int i);
+    double get_betar (int i);
+    double get_betai (int i);
+
+    double get_evalr (int i);
+    double get_evali (int i);
+};
+
+
+class JDQZ_ParameterList {
+
+    JDQZ_ParameterList();
+    ~JDQZ_ParameterList();
+
+    void set_maxiter(int v);
+    void set_initq  (int v);
+    void set_minq   (int v);
+    void set_maxq   (int v);
+
+    void set_resid_atol   (double v);
+    void set_tresid_atol  (double v);
+    void set_teigdist_rtol(double v);
+
+    void set_ksp_rtol    (double v);
+    void set_ksp_maxits  (int    v);
+    void set_ksp_type    (string v);
+
+    void check_parameters();
+};
+
+JDQZ_Data* JDQZ(Mat A, Mat B, PC pc, Vec v0,
+          double shift, int neigs, JDQZ_ParameterList* jpl);
+JDQZ_Data* JDQZ(Mat A, Mat B, PC pc, Vec v0,
+          double shift, int neigs, int maxiter, double atol, int initq, int minq, int maxq);

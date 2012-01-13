@@ -1,0 +1,156 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "mesh.h"
+$#include "adjstructure.h"
+$#include "mesh_partition.h"
+$#include "mesh_manager.h"
+$#include "qarray.h"
+$#include "mesh_partitioner.h"
+$#include "mesh_partitioner_metis.h"
+$#include "mesh_partitioner_conform.h"
+$#include "mesh_partitioner_luastubs.h"
+//$#include "mesh_partitionerp.h"
+
+// -- Mesh_Partitioner bindings -------------------
+
+class Mesh_Partitioner {
+    ~Mesh_Partitioner();
+
+    void build_tie_map(double tol);
+    void partition_nodes();
+    void partition_elements();
+
+    void assign_ids();
+    int  get_startid(int i);
+    int  get_end1id(int i);
+
+    int get_numnp(int n);
+    void get_nodes         (int n, int numnpn, int nodes[numnpn]);
+    void get_tie_map       (int n, int numnpn, int nodes[numnpn], int xmap [numnpn] );
+    void get_node_partition(int n, int numnpn, int nodes[numnpn], int parts[numnpn] );
+    // void get_node_ids(int n, int numnpn, int nodes[numnpn], int* nodeids);
+
+    void get_numelt(int n);
+    void get_elements         (int n, int numeltn, int elts[numeltn]);
+    void get_element_partition(int n, int numeltn, int elts[numeltn], int parts[numeltn]);
+
+    int get_ndm();
+    int get_num_partitions();
+};
+
+$ void Mesh_Partitioner_get_node_ids(Mesh_Partitioner* mp, int n, int numnpn, int* nodes, int numnpnxndf, int* nodeids)
+$ {
+$     mp->get_node_ids(n,numnpn,nodes,nodeids);
+$ }
+void Mesh_Partitioner_get_node_ids(Mesh_Partitioner* mp, int n, int numnpn, int nodes[numnpn], int numnpnxndf, int nodeids[numnpnxndf]);
+
+$[
+function Mesh_Partitioner.partition(self,tol)
+  local tol = tol or meshtol
+  self:build_tie_map(tol)
+  self:partition_nodes()
+  self:partition_elements()
+  self:assign_ids()
+end
+$]
+
+
+// -- Mesh_Partitioner_METIS bindings -------------------------------
+
+class Mesh_Partitioner_METIS : public Mesh_Partitioner {
+
+    Mesh_Partitioner_METIS(int nparts, Mesh* mesh, int ptype=0);
+    ~Mesh_Partitioner_METIS();
+
+    void set_metis(int ptype);
+
+    // void get_node_partition(int* np);
+    Mesh* get_mesh();
+};
+
+$ void Mesh_Partitioner_METIS_get_node_partition(Mesh_Partitioner_METIS* mp, int numnp, int* parts)
+$ {
+$     mp->get_node_partition(parts);
+$ }
+
+void Mesh_Partitioner_METIS_get_node_partition(Mesh_Partitioner_METIS* mp, int numnp, int parts[numnp]=0);
+
+$[
+function Mesh_Partitioner_METIS.get_node_partition(self,numnp)
+    local parts = {}
+    local numnp = self:get_mesh():numnp();
+    Mesh_Partitioner_METIS_get_node_partition(self,numnp,parts)
+    return parts
+end
+$]
+
+
+
+// -- Mesh_Partitioner_Conform bindings -------------------------------
+
+class Mesh_Partitioner_Conform : public Mesh_Partitioner {
+
+    Mesh_Partitioner_Conform(int nparts, Mesh* mesh);
+    ~Mesh_Partitioner_Conform();
+
+    void build_pepairs(int to_numnp, int to_npart[to_numnp], int nemap[to_numnp]);
+
+    // void get_node_partition(int* np);
+    Mesh* get_mesh();
+};
+
+$ void Mesh_Partitioner_Conform_get_node_partition(Mesh_Partitioner_Conform* mp, int numnp, int* parts)
+$ {
+$     mp->get_node_partition(parts);
+$ }
+
+void Mesh_Partitioner_Conform_get_node_partition(Mesh_Partitioner_Conform* mp, int numnp, int parts[numnp]=0);
+
+$[
+function Mesh_Partitioner_Conform.get_node_partition(self,numnp)
+    local parts = {}
+    local numnp = self:get_mesh():numnp();
+    Mesh_Partitioner_Conform_get_node_partition(self,numnp,parts)
+    return parts
+end
+$]
+
+
+class PEPair_Data {
+    PEPair_Data(Mesh_Partitioner* mp, Mesh_Add_Block* from, Mesh_Add_Block* to);
+    ~PEPair_Data();
+};
+
+$ void Mesh_Partitioner_Conform_build_pepairs_data(Mesh_Partitioner_Conform* mpc, PEPair_Data* pepd)
+$ {
+$     mpc->build_pepairs(pepd->get_numnp_t(),pepd->get_npart_t(),pepd->get_nemap());
+$ }
+void Mesh_Partitioner_Conform_build_pepairs_data(Mesh_Partitioner_Conform* mpc, PEPair_Data* pepd);
+
+$[
+function Mesh_Partitioner_Conform:build_pepairs_data(pepd)
+    Mesh_Partitioner_Conform_build_pepairs_data(self,pepd)
+end
+$]
+
+// -- Parallel_Mesh_Partitioner bindings -------------------------------
+/*
+class Parallel_Mesh_Partitioner {
+
+    Parallel_Mesh_Partitioner(Mesh* mesh, int nparts);
+    ~Parallel_Mesh_Partitioner();
+
+    void tie(double, int start=-1, int end=-1);
+    void partition_nodes(int ptype);
+    void partition_elements();
+    void sendreceive_nodes_info();
+    void sendreceive_elements_info();
+
+  int num_mymeshes();
+  Mesh_NP* get_mesh(int i);
+};
+*/
+
+

@@ -1,0 +1,3 @@
+$#include "petsc_mesh.h"
+
+void Mesh_SetU_Petsc_Vec(Mesh* mesh, Vec v, int is_reduced);

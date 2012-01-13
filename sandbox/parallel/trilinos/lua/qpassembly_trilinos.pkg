@@ -1,0 +1,27 @@
+$#include "mesh.h"
+$#include "qpassembly_trilinos.h"
+
+Epetra_CrsMatrix_Complex* Mesh_assemble_dRz_trilinos(Mesh* mesh, double cx, double cv, double ca,
+                           int is_reduced, int is_real);
+Epetra_CrsMatrix* Mesh_assemble_dR_trilinos(Mesh* mesh, double cx, double cv, double ca,
+                           int is_reduced);
+Epetra_CrsMatrix* Mesh_assemble_dRi_trilinos(Mesh* mesh, double cx, double cv, double ca,
+                           int is_reduced);
+Epetra_Vector_Complex* Mesh_assemble_Rz_trilinos(Mesh* mesh, int is_real);
+Epetra_Vector* Mesh_assemble_R_trilinos(Mesh* mesh);
+Epetra_Vector* Mesh_assemble_Ri_trilinos(Mesh* mesh);
+
+$[
+function Mesh:assemble_dR_trilinos(cx, cv, ca, is_reduced)
+  cx = cx or 1
+  cv = cv or 0
+  ca = ca or 0
+  is_reduced = is_reduced or 1
+
+  return Mesh_assemble_dR_trilinos(self, cx, cv, ca, is_reduced)
+end
+
+function Mesh:assemble_R_trilinos()
+  return Mesh_assemble_R_trilinos(self)
+end
+$]

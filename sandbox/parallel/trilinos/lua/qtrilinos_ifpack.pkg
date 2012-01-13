@@ -1,0 +1,11 @@
+$#include "qtrilinos_ifpack.h"
+
+$using Teuchos::ParameterList;
+
+class Ifpack_Preconditioner : public Epetra_Operator {
+    ~Ifpack_Preconditioner();
+};
+
+Ifpack_Preconditioner* qCreate_Ifpack_Preconditioner
+   (Epetra_CrsMatrix* SM, const string& name, ParameterList* IfpackList, int overlap);
+

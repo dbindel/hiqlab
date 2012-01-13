@@ -1,0 +1,4 @@
+g++ -DHAVE_CONFIG_H -o ex12.exe ex12.o trilinos_super_matrix.o \
+                  \
+                /usr/local/trilinos/7.0.3/linux_mpi1_gnu/packages/epetra/src/libepetra.a -L/usr/local/trilinos/7.0.3/linux_mpi1_gnu/packages/didasko/src \
+-lreadline -ltermcap -lhistory  -L`echo /home/tkoyama/programs/hiqlab/tools/`/tolua++/lib -ltolua -L`echo /home/tkoyama/programs/hiqlab/tools/`/lua/lib -llua -llualib `echo /home/tkoyama/programs/hiqlab/tools/`/ARPACK/libarpack.a `echo /home/tkoyama/programs/hiqlab/tools/`/UMFPACK/Lib/libumfpack.a `echo /home/tkoyama/programs/hiqlab/tools/`/AMD/Lib/libamd.a /usr/local/amd/acml/3.5.0/gnu64/lib/libacml.a /usr/local/amd/acml/3.5.0/gnu64/lib/libacml.a  -L/usr/lib/gcc/x86_64-redhat-linux/3.4.6 -L/usr/lib/gcc/x86_64-redhat-linux/3.4.6/../../../../lib64 -L/usr/lib/gcc/x86_64-redhat-linux/3.4.6/../../.. -L/lib/../lib64 -L/usr/lib/../lib64 -lfrtbegin -lg2c -lm -lgcc_s  -lm 

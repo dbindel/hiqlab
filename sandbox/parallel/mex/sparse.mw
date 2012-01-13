@@ -1,0 +1,50 @@
+% HiQLab
+% Copyright (c): Regents of the University of California
+
+$[
+#include <mex.h>
+#include "cscmatrix.h"
+#include "pmlmode.h"
+#include "mesh.h"
+#include "adjstructure.h"
+
+void pml_mode_helper(const mxArray* K1, const mxArray* M1,
+                     int n, int nev, int ncv,
+                     dcomplex* d, dcomplex* v)
+{
+    CSCMatrix M(mxGetJc(M1), mxGetIr(M1), mxGetPr(M1), mxGetPi(M1), n, n);
+    CSCMatrix Kshift(mxGetJc(K1), mxGetIr(K1), mxGetPr(K1), mxGetPi(K1), n, n);
+    compute_eigs(Kshift, M, nev, ncv, d, v, n);
+}
+$]
+
+
+@function [d,V] = pml_mode_2(Kshift, M, nev)
+
+[Mm, Mn] = size(M);
+[Km, Kn] = size(Kshift);
+if Mm ~= Mn | Km ~= Kn | Km ~= Mm
+  error('M and K must be equal-sized matrices');
+end
+if ~issparse(Kshift), Kshift = sparse(Kshift); end
+if ~issparse(M),      M      = sparse(M);      end
+
+n   = Mn;
+ncv = max(10,2*nev);
+
+# pml_mode_helper(mxArray Kshift, mxArray M, int Mn, int nev, int ncv,
+#                 output dcomplex[n] d, output dcomplex[n,ncv] V);
+
+d = d(1:nev);
+V = V(:,1:nev);
+
+
+@function [nz] = build_adj_nnz(mesh)
+# int nz = build_adj_nnz(Mesh* mesh);
+
+
+@function [jc,ir] = build_adj(mesh)
+nz = build_adj_nnz(mesh);
+n  = Mesh_numnp(mesh);
+n1 = n+1;
+# build_adj(Mesh* mesh, output int[n1] jc, output int[nz] ir);

@@ -1,0 +1,89 @@
+$#include "tedlinear.h"
+$#include "stubs.h"
+
+int ted_block_mesh(Mesh* m);
+  //%doc
+  // Relabel the nodal degrees of freedom so that all mechanical degrees of
+  // freedom come first, followed by all thermal degrees of freedom.  Return
+  // the total number of mechanical degrees of freedom.
+
+m_Object ted_assemble(Mesh* m, double T0, double cT,
+                      complex<double> ca, complex<double> cb);
+  //%cname ted_assemble1
+  //%doc
+  // Assemble ca*A + cb*B, where A and B are the matrices in the
+  // linearization of the coupled thermoelastic equations.
+  //
+  // If T0 == 0, then use the basic linearization
+  //
+  //   B = [ Muu, 0,   0,
+  //         0,   Muu, 0,
+  //         0,   0,   Ctt ];
+  //
+  //   A = [ 0,  -Muu, 0,
+  //         Kuu, 0,   Kut,
+  //         0,   Ctu, Ktt ];
+  //
+  // else use a symmetrized linearization
+  //
+  //   B = [-Kuu, 0,   0,
+  //         0,   Muu, 0,
+  //         0,   0,  -Ctt/T0 ];
+  //
+  //   A = [ 0,    Kuu,     0,
+  //         Kuu,  0,       Kut,
+  //         0,   -Ctu/T0, -Ktt/T0 ];
+  //
+  //   where Kut = -Ctu.'/T0 (assuming T0 is the same temp used
+  //   as a reference temperature).
+
+int ted_compute_eigs(Mesh* m, double w0, double T0, double cT,
+                     int nev, int ncv, double* dr, double* di);
+  //%output dr(nev), di(nev)
+  //%doc
+  // Compute eigenvalues for a TED problem based on linearization.
+  // You probably should not call this function directly!  Use ted_mode.
+  // Inputs:
+  //  m   - mesh object
+  //  w0  - shift frequency (should be near the target eigenvalues)
+  //  T0  - reference temperature, used to determine the symmetric
+  //        or nonsymmetric linearization.  See also ted_assemble.
+  //  nev - number of desired eigenvalues
+  //  ncv - size of Krylov subspace (max(20,2*nev) is a good guess)
+  // Outputs:
+  //  dr  - real part of the nev converged eigs
+  //  di  - imag part of the nev converged eigs
+
+void ted_compute_eigs1(Mesh* m, int n, double w0, double T0, double cT,
+                       int nev, int ncv,
+                       complex<double>* d, complex<double>* v);
+  //%cname ted_compute_eigs
+  //%output d(nev), v(n,nev)
+  //%dummy n
+  //%doc
+  // You probably should not call this function directly!  Use ted_mode.
+
+void ted_compute_eigsp1(Mesh* m, int n, double w0, int nev, int ncv,
+                       complex<double>* d, complex<double>* v);
+  //%cname ted_compute_eigsp
+  //%output d(nev), v(n,nev)
+  //%dummy n
+  //%doc
+  // You probably should not call this function directly!  Use ted_mode.
+
+$[
+function [d,V] = ted_mode_2(mesh, w0, T0, cT, nev, analysis_type)
+% You should probably not call this function directly!  Use ted_mode.
+
+n   = Mesh_get_numid(mesh);
+ncv = max(10,2*nev);
+
+if analysis_type == 0
+  [d,V] = ted_compute_eigs1(mesh, n, w0, T0, cT, nev, ncv);
+else
+  [d,V] = ted_compute_eigsp1(mesh, n, w0, cT, nev, ncv);
+end
+
+d = d(1:nev);
+V = V(:,1:nev);
+$]

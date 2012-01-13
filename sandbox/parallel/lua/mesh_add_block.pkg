@@ -1,0 +1,78 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$ #include "mesh_add_block.h"
+$ #include "mesh.h"
+$ #include "mesh_manager.h"
+$ #include <iostream>
+
+class Mesh_Add_Block : public Mesh {
+
+    Mesh_Add_Block(int ndm, int nen = 0, int ndf = 0);
+    ~Mesh_Add_Block();
+
+    void add_block(double x1, double x2, int nx,
+                   Element* etype, int order);
+
+    void add_block(double x1, double y1,
+                   double x2, double y2,
+                   int nx, int ny,
+                   Element* etype, int order);
+
+    void add_block(double x1, double y1, double z1,
+                   double x2, double y2, double z2,
+                   int nx, int ny, int nz,
+                   Element* etype, int order);
+
+    void tie(double tol);
+
+    // void node_element_mapping(Mesh_Add_Block* from_mesh, int* nemap);
+
+    void initialize();
+    void initialize_minimal();
+    int  get_numblocks();
+};
+
+$ void Mesh_Add_Block_node_element_mapping1(Mesh_Add_Block* to_mesh, Mesh_Add_Block* from_mesh, 
+$                                           int numnp, int* nemap)
+$ {
+$     to_mesh->node_element_mapping(from_mesh,nemap);
+$ }
+void Mesh_Add_Block_node_element_mapping1(Mesh_Add_Block* to_mesh, Mesh_Add_Block* from_mesh, int numnp,
+                                          int nemap[numnp]=0);
+
+
+$[
+local Mesh_Add_Block_new = Mesh_Add_Block.new
+function Mesh_Add_Block.new(...)
+  local mesh = Mesh_Add_Block_new(unpack(arg))
+  mesh:set_lua()
+  return mesh
+end
+
+function Mesh_Add_Block:node_element_mapping(from_mesh)
+    local nemap = {}
+    local numnp = self:numnp()
+    Mesh_Add_Block_node_element_mapping1(self,from_mesh,numnp,nemap)
+    return nemap
+end
+$]
+
+$[
+-- Redefine tie to use meshtol if no explicit tolerance is given
+
+local meshtie1 = Mesh_Add_Block.tie;
+function Mesh_Add_Block:tie(tol)
+  tol = tol or meshtol
+  meshtie1(self,tol)
+end
+$]
+
+$ CSCMatrix* assemble_P(Mesh* from, Mesh* to, int numnp, int* nemap, int reduced)
+$ {
+$     return assemble_P(from,to,nemap,reduced);
+$ }
+
+CSCMatrix* assemble_P(Mesh* from, Mesh* to, int numnp, int nemap[numnp], int reduced);
+

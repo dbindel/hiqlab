@@ -1,0 +1,92 @@
+
+Notes on convergence study for the Michigan disk resonator
+--
+
+Soon after writing the PML code, we tried to simulate the behavior of
+a Michigan disk resonator.  The structural layer is ten microns in
+radius, with a post one micron in radius; the whole structure is made
+of polysilicon.  In practice, the structure sits atop a stack of
+nitride, oxide, nitride, and single-crystal, but we pretended that it
+would sit atop a half space of polysilicon.  Since the actual device
+has material interfaces which were not included in our model, we
+assumed that the computed Q would be low.
+
+Excepting material interfaces, the damping due to anchor losses in
+such a structure is a function of the geometry.  Young's modulus and
+density affect the computed real frequency, but not Q; this can be
+seen by writing the elasticity equations and factoring E, rho, and the
+eigenvalue into one location.
+
+The first simulations showed the right general behavior, but gave a
+disappointingly low value of Q.  However, when we increased the mesh
+density, we found that we had not yet converged to the correct value
+of Q.  After increasing the mesh density substantially and using
+higher-order elements, we finally converged to a Q value slightly
+greater than 6000; the measured Q for the device is just over 7000.
+The apparent absolute errors in the real and imaginary components of
+the eigenvalue were about the same -- consequently, to get the first
+digit correct in Q, we needed to compute the real part of the
+eigenvalue to about five digits of accuracy!  It makes intuitive sense
+that such high accuracy is needed for the following reason.  The
+magnitude of the wave decays rapidly as it travels through the post to
+the substrate; it is the rapid decay of this wave amplitude that makes
+it possible to trap energy in the resonator and sustain such high Q.
+If the numerical model is too coarse, the gradients in wave amplitude
+will be under-resolved, and so the numerical model will predict more
+energy reaching the boundary than occurs in reality.  To exacerbate
+matters, it has long been known that a uniform mesh is needed to get
+good solutions to time-harmonic problems, since error in one part of
+the mesh can pollute the behavior in other parts of the mesh (cite Z&T
+volume 3).
+
+The behavior isn't really obvious -- as Tsuyoshi asked, "why is such a
+fine mesh required to resolve Q in this case, and not in the
+thermoelastic case when the computed Q is much higher."  The answer, I
+think, is that in the thermoelastic case, the error in the real and
+imaginary parts are largely independent.  They differ in scale because
+of the weak connection between the thermal and elastic fields, not
+because of the fine details.  This is part of why a perturbation
+analysis of the loss works so well.  In the case of anchor loss, there
+is only one field, and the difference in scale is because of the
+gradients in the elastic field.  To resolve those gradients requires a
+fine mesh.
+
+Question: is it possible to do a more detailed perturbation analysis
+in order to make those statements rigorous?
+
+Fortunately, with a combination of high order elements and mesh
+refinement, we were able to obtain convergence with relatively low
+expense.  The driver converge_all.m runs the experiment; it compares
+the run time, computed frequency, and computed Q for bilinear,
+biquadratic, and bicubic meshes of varying densities.  For a density
+parameter d, the node spacing was set to 1/d microns, or as nearly as
+could be achieved and still maintain the appropriate number of nodes
+for the element type.  As expected, the computed value of the real
+part of the eigenvalue converges from above (as we would expect in
+such a Rayleigh-Ritz style approximation to the continuous problem)
+while the computed value of Q converges from below (since an
+under-resolved mesh will tend to lead to overestimates of Q, as
+mentioned above).
+
+For the eigenvalue computation, we fixed the attenuation function
+based on an estimate of the resonant frequency.  Fixing the frequency
+used to set up the attenuation function will result in some frequency
+dependence in the damping, but ultimately the difference is a small
+relative change in the exponent of an exponential damping factor, and
+we expect the PML to remain effective in absorbing outgoing waves.  We
+solved the linearized problem using shift-and-invert Arnoldi, with an
+initial (real) shift based on an analytical estimate of the
+eigenvalue.  Because the damping is so light and the pole is well
+isolated, we expect the eigencomputation to be extremely
+well-conditioned.  ARPACK reported convergence after the minimum
+number of allowed iterations (20).
+
+We initially implemented the elements in Matlab, but switched to C
+when it became clear that the element formation was a bottleneck in
+the code.  We then tuned the code to evaluate the elastic integrand,
+since it remained an unexpected bottleneck.  After a small amount of
+tuning, the bottleneck occurred in a more reasonable case: the LU
+factorization which preceded the shift-and-invert Arnoldi iteration.
+Since convergence of the eigensolver iteration occurs so quickly, we
+expect that the preliminary LU factorization of the shifted matrix
+will remain the bottleneck in the code.

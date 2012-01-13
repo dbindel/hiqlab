@@ -1,0 +1,272 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ *
+ * $Id: element.pkg,v 1.14 2005/06/16 23:13:44 tkoyama Exp $
+ */
+
+$#include "stubs.h"
+$#include "element.h"
+$#include "pmlelement.h"
+$#include "pmlscalar1d.h"
+$#include "pmlscalar2d.h"
+$#include "pmlscalar3d.h"
+$#include "pmlscalarax.h"
+$#include "pmlelastic2d.h"
+$#include "pmlelastic3d.h"
+$#include "pmlelasticax.h"
+$#include "pmlelastic2d_te.h"
+$#include "pmlelasticax_te.h"
+$#include "pmlelastic3d_te.h"
+$#include "pmlelastic2d_pz.h"
+$#include "pmlelastic2hd_pz.h"
+$#include "pmlelastic3d_pz.h"
+
+class Element {
+ public:
+    Element(int nslots);
+    virtual ~Element();
+};
+
+class PMLElement : public Element {
+ public:
+    PMLElement(int nslots);
+    void set_stretch(double* stretch, int ndm, int nelt);
+        //%input stretch(ndm,nelt)
+        //%doc
+        // Set the PML stretching function.  The stretch array is an
+        // ndm-by-numelt array of real numbers.  The preferred method for
+        // setting the stretch array is to define a Lua stretch function.
+};
+
+class PMLScalar1d : public PMLElement {
+ public:
+    PMLScalar1d(double kappa, double rho);
+        //%doc
+        // Create a new element to solve the wave equation
+        //   rho*u_tt = kappa u_xx
+        // in one dimension, where u is a scalar quantity
+};
+
+class PMLScalar2d : public PMLElement {
+ public:
+    PMLScalar2d(double kappa, double rho);
+        //%doc
+        // Create a new element to solve the wave equation
+        //   rho*u_tt = kappa (u_xx + u_yy)
+        // in two dimensions, where u is a scalar quantity
+};
+
+class PMLScalar3d : public PMLElement {
+ public:
+    PMLScalar3d(double kappa, double rho);
+        //%doc
+        // Create a new element to solve the wave equation
+        //   rho*u_tt = kappa (u_xx + u_yy + u_zz)
+        // in three dimensions, where u is a scalar quantity
+};
+
+class PMLScalarAxis : public PMLElement {
+ public:
+    PMLScalarAxis(double kappa, double rho);
+        //%doc
+        // Create a new element to solve the wave equation
+        //   rho*u_tt = kappa (u_xx + u_yy + u_zz)
+        // in an axisymmetric setting, where u is a scalar quantity
+};
+
+class PMLElastic2d : public PMLElement {
+ public:
+    PMLElastic2d(double E, double nu, double rho, int plane_type);
+        //%doc
+        // Create a new element to solve the elasticity equation.
+        // Inputs:
+        //  E   - Young's modulus
+        //  nu  - Poisson ratio
+        //  rho - mass density
+        //  plane_type - 0 for plane strain, 1 for plane stress
+};
+
+class PMLElastic3d : public PMLElement {
+ public:
+    PMLElastic3d(double E, double nu, double rho);
+        //%doc
+        // Create a new element to solve the elasticity equation.
+        // Inputs:
+        //  E   - Young's modulus
+        //  nu  - Poisson ratio
+        //  rho - mass density
+};
+
+class PMLElasticAxis : public PMLElement {
+ public:
+    PMLElasticAxis(double E, double nu, double rho);
+        //%doc
+        // Create a new element to solve the elasticity equation.
+        // Inputs:
+        //  E   - Young's modulus
+        //  nu  - Poisson ratio
+        //  rho - mass density
+};
+
+class PMLElastic2d_te : public PMLElement {
+ public:
+    PMLElastic2d_te(double E, double nu, double rho,
+                    double at, double cp, double kt, double T0,
+                    int plane_type);
+        //%doc
+        // Create a new element to solve the thermoelastic equations
+        // Inputs:
+        //  E   - Young's modulus
+        //  nu  - Poisson ratio
+        //  rho - Mass density
+        //  at  - Coefficient of thermal expansion
+        //  cp  - Thermal capacity at constant pressure
+        //  kt  - Thermal conductivity
+        //  T0  - Reference temperature
+        //  plane_type - 0 for plane strain, 1 for plane stress
+
+    PMLElastic2d_te(double* D, double rho,
+                    double at, double cp, double kt, double T0);
+        //%doc
+        // Create a new element to solve the thermoelastic equations
+        // Inputs:
+        //  D   - Mechanical property matrix
+        //  rho - Mass density
+        //  at  - Coefficient of thermal expansion
+        //  cp  - Thermal capacity at constant pressure
+        //  kt  - Thermal conductivity
+        //  T0  - Reference temperature
+
+};
+
+class PMLElasticAxis_te : public PMLElement {
+    PMLElasticAxis_te(double lambda, double mu, double rho,
+                     double at, double cp, double kt, double T0);
+        //%doc
+        // Create a new element to solve the thermoelastic equations
+        // Inputs:
+        //  E   - Young's modulus
+        //  nu  - Poisson ratio
+        //  rho - Mass density
+        //  at  - Coefficient of thermal expansion
+        //  cp  - Thermal capacity at constant pressure
+        //  kt  - Thermal conductivity
+        //  T0  - Reference temperature
+};
+
+class PMLElastic3d_te : public PMLElement {
+    PMLElastic3d_te(double lambda, double mu, double alpha, double rho,
+                     double at, double cp, double kt, double T0,
+                     double* axis1, double* axis2);
+        //%doc
+        // Create a new element to solve the thermoelastic equations
+        // Inputs:
+        //  E   - Young's modulus
+        //  nu  - Poisson ratio
+        //  rho - Mass density
+        //  at  - Coefficient of thermal expansion
+        //  cp  - Thermal capacity at constant pressure
+        //  kt  - Thermal conductivity
+        //  T0  - Reference temperature
+};
+
+class PMLElastic2d_pz : public PMLElement {
+ public:
+    PMLElastic2d_pz(double E, double nu, double rho,
+                    double* pz, double kds, int plane_type);
+        //%doc
+        // Create a new element to solve the piezoelectric-elastic equations
+        // Inputs:
+        // E             Young's modulus
+        // nu            Poisson's ratio
+        // rho           Mass density
+        // pz            Piezoelectric coefficients(6-by-3)
+        // kds           Dielectric coefficient(constant stress)
+        //                                     (constant strain -> kde)
+        // plane_type    [0] for plane strain, [1] for plane stress
+
+
+    PMLElastic2d_pz(double* Db, double rho);
+
+        //%doc
+        // Create a new element to solve the piezoelectric elastic equations
+        // Inputs:
+        //  Db            Material property matrix (5-by-5)
+        //                     [ sigma        ] = [   D        -D*pzt] [epsilon]
+        //                     [ electric disp] = [pz*D  kds-pz*D*pzt] [Efield ]
+        //  pz            Piezoelectric coefficients(6-by-3)
+        //  kds           Dielectric coefficient(constant stress)(3-by-3)
+        //                                           (constant strain -> kde)
+        //  rho           Mass density
+
+};
+
+class PMLElastic2hd_pz : public PMLElement {
+ public:
+    PMLElastic2hd_pz(double E, double nu, double rho,
+                    double* pz, double kds);
+        //%doc
+        // Create a new element to solve the piezoelectric-elastic equations
+        // Inputs:
+        // E             Young's modulus
+        // nu            Poisson's ratio
+        // rho           Mass density
+        // pz            Piezoelectric coefficients(6-by-3)
+        // kds           Dielectric coefficient(constant stress)
+        //                                     (constant strain -> kde)
+
+    PMLElastic2hd_pz(double* Db, double rho);
+
+        //%doc
+        // Create a new element to solve the piezoelectric elastic equations
+        // Inputs:
+        //  Db            Material property matrix (4-by-4)
+        //                     [ sigma        ] = [   D        -D*pzt] [epsilon]
+        //                     [ electric disp] = [pz*D  kds-pz*D*pzt] [Efield ]
+        //  pz            Piezoelectric coefficients(6-by-3)
+        //  kds           Dielectric coefficient(constant stress)(3-by-3)
+        //                                           (constant strain -> kde)
+        //  rho           Mass density
+
+};
+
+class PMLElastic3d_pz : public PMLElement {
+ public:
+    PMLElastic3d_pz(double E, double nu, double rho,
+                    double* pz, double kds);
+        //%doc
+        // Create a new element to solve the piezoelectric-elastic equations
+        // Inputs:
+        // E             Young's modulus
+        // nu            Poisson's ratio
+        // rho           Mass density
+        // pz            Piezoelectric coefficients(6-by-3)
+        // kds           Dielectric coefficient(constant stress)
+        //                                     (constant strain -> kde)
+
+    PMLElastic3d_pz(double* Db, double rho);
+
+        //%doc
+        // Create a new element to solve the piezoelectric elastic equations
+        // Inputs:
+        //  Db            Material property matrix (9-by-9)
+        //                     [ sigma        ] = [   D        -D*pzt] [epsilon]
+        //                     [ electric disp] = [pz*D  kds-pz*D*pzt] [Efield ]
+        //  pz            Piezoelectric coefficients(6-by-3)
+        //  kds           Dielectric coefficient(constant stress)(3-by-3)
+        //                                           (constant strain -> kde)
+        //  rho           Mass density
+
+};
+
+Element* NullElement();
+        //%doc
+        // Generate an Element corresponding to NULL.  Do not use this
+        // function unless you *really* know what you're doing!
+
+$c[
+Element* NullElement()
+{
+    return NULL;
+}
+$]

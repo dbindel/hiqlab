@@ -1,0 +1,281 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ *
+ * $Id: luasupport.pkg,v 1.12 2006/05/04 23:50:08 tkoyama Exp $
+ */
+
+$#include "luasupport.h"
+
+class lua_State;
+class Mesh;
+
+lua_State* Lua_open();
+        //%doc
+        // Create a new Lua interpreter.
+
+void Lua_close(lua_State* L);
+        //%doc
+        // Delete a Lua interpreter created by Lua_open.
+
+void Lua_dofile(lua_State* L, const char* fname);
+        //%doc
+        // Execute a file using the Lua interpreter L.
+
+void Lua_dostring(lua_State* L, const char* s);
+        //%doc
+        // Execute a string using the Lua interpreter L
+
+void Lua_set_mesh(lua_State* L, const char* name, Mesh* mesh);
+        //%doc
+        // Write a mesh variable into the Lua environment
+        // Input:
+        //  L    - the Lua interpreter object
+        //  name - the name in Lua to which the mesh should be assigned
+        //  mesh - the mesh object in MATLAB
+
+Mesh* Lua_get_mesh(lua_State* L, const char* name);
+        //%doc
+        // Get a mesh variable out of the Lua environment
+        // Input:
+        //  L    - the Lua interpreter object
+        //  name - the name in of the mesh object in Lua
+
+void Lua_set_string(lua_State* L, const char* name, const char* s);
+        //%doc
+        // Set a string variable in the Lua environment
+        // Input:
+        //  L    - the Lua interpreter object
+        //  name - the name of the Lua variable
+        //  s    - a string value
+
+m_Object Lua_get_string(lua_State* L, const char* name);
+        //%doc
+        // Get a string variable out of the Lua environment
+        // Input:
+        //  L    - the Lua interpreter object
+        //  name - the name of the Lua variable
+
+void Lua_set_double(lua_State* L, const char* name, double x);
+        //%doc
+        // Set a numeric variable in the Lua environment
+        // Input:
+        //  L    - the Lua interpreter object
+        //  name - the name of the Lua variable
+        //  x    - a number
+
+void Lua_get_double1(lua_State* L, const char* name, double* x, int* isfield);
+        //%output x, isfield
+        //%doc
+        // Get a numeric variable out of the Lua environment
+        // Input:
+        //  L       - the Lua interpreter object
+        //  name    - the name of the Lua variable
+        //  x       - the value of the Lua variable
+        //  isfield - flag for existence of the Lua variable
+        //
+        // Low-level routine: use Lua_get_double
+
+void   Lua_set_table_double1(lua_State* L, const char* tname,
+                                          const char* dname, double x);
+        //%doc
+        // Set a numeric variable in a table in the Lua environment
+        // (Key is string)
+        // Input:
+        //  L     - the Lua interpreter object
+        //  tname - the name of the Lua table
+        //  dname - the name of the Lua key
+        //  x     - a number
+        //
+        // Low-level routine: use Lua_set_table_double
+
+void   Lua_set_table_double2(lua_State* L, const char* tname,
+                                          const double dnumber, double x);
+        //%doc
+        // Set a numeric variable in a table in the Lua environment
+        // (Key is number)
+        // Input:
+        //  L      - the Lua interpreter object
+        //  tname  - the name of the Lua table
+        //  dnumber- the name of the Lua key
+        //  x      - a number
+        //
+        // Low-level routine: use Lua_set_table_double
+
+void Lua_get_table_double1(lua_State* L, const char* tname, const char* dname,
+                            double* x, int* isfield);
+        //%output x, isfield
+        //%doc
+        // Get a numeric variable out of a table in the Lua environment
+        // (Key is string)
+        // Input:
+        //  L       - the Lua interpreter object
+        //  tname   - the name of the Lua table
+        //  dname   - the name of the Lua key
+        //  x       - the value of the Lua variable
+        //  isfield - flag for existence of the Lua variable
+        //
+        // Low-level routine: use Lua_get_table_double
+
+void Lua_get_table_double2(lua_State* L, const char* tname, const double dnumber,
+                            double* x, int* isfield);
+        //%output x, isfield
+        //%doc
+        // Get a numeric variable out of a table in the Lua environment
+        // (Key is number)
+        // Input:
+        //  L       - the Lua interpreter object
+        //  tname   - the name of the Lua table
+        //  dnumber - the number of the Lua key
+        //  x       - the value of the Lua variable
+        //  isfield - flag for existence of the Lua variable
+        //
+        // Low-level routine: use Lua_get_table_double
+
+void   Lua_set_table_string1(lua_State* L, const char* tname,
+                                          const char* dname, const char* s);
+        //%doc
+        // Set a string variable in a table in the Lua environment
+        // (Key is string)
+        // Input:
+        //  L     - the Lua interpreter object
+        //  tname - the name of the Lua table
+        //  dname - the name of the Lua key
+        //  s     - a string
+        //
+        // Low-level routine: use Lua_set_table_string
+
+void   Lua_set_table_string2(lua_State* L, const char* tname,
+                                          const double dnumber, const char* s);
+        //%doc
+        // Set a string variable in a table in the Lua environment
+        // (Key is number)
+        // Input:
+        //  L      - the Lua interpreter object
+        //  tname  - the name of the Lua table
+        //  dnumber- the name of the Lua key
+        //  s      - a string
+        //
+        // Low-level routine: use Lua_set_table_string
+
+m_Object Lua_get_table_string1(lua_State* L, const char* tname, const char* dname);
+        //%doc
+        // Get a string variable out of a table in the Lua environment
+        // (Key is string)
+        // Input:
+        //  L       - the Lua interpreter object
+        //  tname   - the name of the Lua table
+        //  dname   - the name of the Lua key
+        //  s       - the string value of the Lua variable
+        //
+        // Low-level routine: use Lua_get_table_string
+
+m_Object Lua_get_table_string2(lua_State* L, const char* tname, const double dnumber);
+        //%doc
+        // Get a string variable out of a table in the Lua environment
+        // (Key is number)
+        // Input:
+        //  L       - the Lua interpreter object
+        //  tname   - the name of the Lua table
+        //  dnumber - the number of the Lua key
+        //  s       - the string value of the Lua variable
+        //
+        // Low-level routine: use Lua_get_table_string
+
+void Lua_set_array1(lua_State* L, const char* name, m_Object array, int a_type);
+        //%doc
+        // Set a matrix variable in the Lua environment
+        // Input:
+        //  L     - the Lua interpreter object
+        //  name  - the name of the Lua variable
+        //  array - a numeric array
+        //  a_type- array type
+        //
+        // Low-level routine: use Lua_set_array
+
+m_Object Lua_get_array(lua_State* L, const char* name);
+        //%doc
+        // Get a matrix variable from the Lua environment
+        // Input:
+        //  L     - the Lua interpreter object
+        //  name  - the name of the Lua variable
+
+// -----------------------
+
+$[
+function Lua_set_array(L, aname, array, a_type)
+% Lua_set_array(L,aname,array,a_type)
+% Set a matrix variable in the Lua environment
+% Input:
+%  L        - the Lua interpreter object
+%  aname    - the name of the matrix variable
+%  array    - a numeric array
+%  a_type(0)- the type of array to construct
+%             0: Real array
+%             1: Real array of twice the size
+%                (Not supported yet)
+%             2: Complex array
+if nargin < 4, a_type=0; end;
+
+Lua_set_array1(L,aname,array,a_type);
+$]
+
+
+// -----------------------
+
+$[
+function [x] = Lua_get_double(L, name)
+% [x] = Lua_get_double(L,name)
+% Get a numeric variable out of the Lua environment
+% Outputs:
+%  x  - the value of the Lua variable
+
+[x,isfield] = Lua_get_double1(L, name);
+if isfield==0, error('Variable "%s" does not exist', name); end;
+$]
+// -----------------------
+
+$[
+function Lua_set_table_double(L, tname, dname, dvalue)
+% Lua_set_table_double(L,tname,dname,dvalue)
+% Set a numeric variable in a table in the Lua environment
+
+if ~isnumeric(dname)
+   Lua_set_table_double1(L, tname, dname, dvalue);
+else
+   Lua_set_table_double2(L, tname, dname, dvalue);
+end;
+$]
+
+// -----------------------
+
+$[
+function [x] = Lua_get_table_double(L, tname, dname)
+% [x] = Lua_get_table_double(L,tname,dname)
+% Get a numeric variable out of a table in the Lua environment
+% Outputs:
+%  x  - the value of the Lua variable
+
+if ~isnumeric(dname)
+   [x,isfield] = Lua_get_table_double1(L, tname, dname);
+else
+   [x,isfield] = Lua_get_table_double2(L, tname, dname);
+end;
+if isfield== 0, error('Variable "%s" does not exist', dname); end;
+if isfield==-1, error('Table "%s" does not exist', tname); end;
+$]
+
+// -----------------------
+
+$[
+function [s] = Lua_get_table_string(L, tname, sname)
+% [s] = Lua_get_table_string(L,tname,sname)
+% Get a string variable out of a table in the Lua environment
+% Outputs:
+%  s  - the string value of the Lua variable
+
+if ~isnumeric(sname)
+   [s] = Lua_get_table_string1(L, tname, sname);
+else
+   [s] = Lua_get_table_string2(L, tname, sname);
+end;
+$]

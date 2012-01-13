@@ -1,0 +1,786 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ *
+ * $Id: mesh.pkg,v 1.36 2006/06/19 16:56:11 dbindel Exp $
+ */
+
+$#include "stubs.h"
+$#include "mesh.h"
+$#include "meshstubs.h"
+$#include "pzlinear.h"
+class Mesh {
+ public:
+
+    Mesh(int ndm);
+        //%doc
+        // Construct a new mesh for a problem in ndm-dimensional space.
+        // Low-level routine.
+
+    int add_node1(double* x, int ndm, int n=1);
+        //%cname add_node
+        //%input x(ndm,n)
+        //%dummy ndm
+        //%doc
+        // Add node coordinates to the mesh.
+        // Input:
+        //  x - an ndm-by-n node coordinate array
+
+    int add_element1(int* e, Element* etype, int n=1, int nen=-1);
+        //%cname add_element
+        //%input e(nen,n)
+        //%doc
+        // Add n elements of type etype to the mesh.
+        // Low-level routine: zero-based indexing.
+        // Input:
+        //  e     - an nen-by-n element connectivity array
+        //  etype - the element material type
+        //  n     - number of elements
+        //  nen   - number of element nodes
+
+    void add_block1d(double x1, double x2, int nx,
+                     Element* etype, int order);
+        //%cname add_block
+        //%doc
+        // Adds a 1D block of elements to the mesh.
+        // Input:
+        //  m     - mesh object
+        //  x1    - first node coordinate
+        //  x2    - last node coordinate
+        //  nx    - number of nodes
+        //  etype - material type
+        //  order - order of interpolating polynomials
+
+    void add_block2d(double x1, double y1,
+                     double x2, double y2,
+                     int nx, int ny,
+                     Element* etype, int order);
+        //%cname add_block
+        //%doc
+        // Adds a 2D block of elements to the mesh.
+        // Input:
+        //  m     - mesh object
+        //  x1,y1 - lower coordinates
+        //  x2,y2 - upper coordinates
+        //  nx,ny - number of nodes in each direction
+        //  etype - material type
+        //  order - order of interpolating polynomials
+
+    void add_block3d(double x1, double y1, double z1,
+                     double x2, double y2, double z2,
+                     int nx, int ny, int nz,
+                     Element* etype, int order);
+        //%cname add_block
+        //%doc
+        // Adds a 3D block of elements to the mesh.
+        // Input:
+        //  m        - mesh object
+        //  x1,y1,z1 - lower coordinates
+        //  x2,y2,z2 - upper coordinates
+        //  nx,ny,nz - number of nodes in each direction
+        //  etype    - material type
+        //  order    - order of interpolating polynomials
+
+    void tie(double tol);
+        //%doc
+        // Tie together the elements in a mesh
+        // Input:
+        //  tol  - distance at which nodes are considered identical
+
+    double get_scale(const char* name);
+        //%doc
+        // Get a characteristic scale described by the given name.
+
+    double x1(int i, int j) const;
+        //%cname x
+        //%doc
+        // Return the ith coordinate of node j (zero-based indexing)
+        // Low-level routine: use Mesh_x.
+
+    int ix1(int i, int j) const;
+        //%cname ix
+        //%doc
+        // Return the ith node of element j (zero-based indexing)
+        // Low-level routine: use Mesh_ix.
+
+    int id1(int i, int j) const;
+        //%cname id
+        //%doc
+        // Return the ith variable id of node j (zero-based indexing)
+        // Low-level routine: use Mesh_get_id
+
+    int branchid1(int i, int j) const;
+        //%cname branchid
+        //%doc
+        // Return the ith variable id of branch j (zero-based indexing)
+        // Low-level routine: use Mesh_branchid
+
+    int globalid1(int i) const;
+        //%cname globalid
+        //%doc
+        // Return the variable id of ith global variable (zero-based indexing)
+        // Low-level routine: use Mesh_globalid
+
+    int nbranch_id1(int j) const;
+        //%cname nbranch_id
+        //%doc
+        // Return the number of vars for branch j (zero-based indexing)
+        // Low-level routine.
+
+    int numnp();
+        //%doc
+        // Return the number of nodal points in the mesh.
+
+    int numelt();
+        //%doc
+        // Return the number of elements in the mesh.
+
+    int numglobals();
+        //%doc
+        // Return the number of global degrees of freedom in the mesh
+
+    int get_numid();
+        //%doc
+        // Return the total number of degrees of freedom in the mesh.
+
+    int get_ndm();
+        //%doc
+        // Return the dimension of the ambient space for the mesh.
+
+    int get_ndf();
+        //%doc
+        // Return the number of degrees of freedom per node in the mesh.
+
+    int get_nen();
+        //%doc
+        // Return the maximum number of nodes per element.
+
+    int nbranch_id();
+        //%doc
+        // Return the number of branch variables in the mesh
+
+    int get_nen_elt1(int i);
+        //%cname get_nen
+        //%doc
+        // Return the number of nodes for element i
+        // Low-level routine: use Mesh_get_nen_elt
+
+    void initialize();
+        //%doc
+        // Initialize the mesh.
+        // Low-level routine: use Mesh_load, which calls this automatically
+
+    void clear_bc();
+        //%doc
+        // Clear current boundary conditions
+
+    void apply_bc();
+        //%doc
+        // Re-apply boundary conditions to the mesh.
+
+    void set_bc(const char* funcname);
+        //%doc
+        // Sets default boundary conditions based on a Lua function or
+        // table of Lua functions defined in the Lua mesh input file
+        // under the name [funcname] if this is given.
+
+    void set_globals_bc(const char* funcname);
+        //%doc
+        // Sets default boundary conditions based on a Lua function or
+        // table of Lua functions defined in the Lua mesh input file
+        // under the name [funcname] if this is given.
+
+    void set_elements_bc(const char* funcname);
+        //%doc
+        // Sets default boundary conditions based on a Lua function or
+        // table of Lua functions defined in the Lua mesh input file
+        // under the name [funcname] if this is given.
+
+    void get_lua_fields1(const char* funcname, int n, double* fout, int numnp);
+        //%cname get_lua_fields
+        //%output fout(n,numnp)
+        //%dummy numnp
+        //%doc
+        // Evaluate a specified Lua function at every nodal point.
+        // Low-level routine.  Use through get_lua_fields.
+
+    void make_harmonic1(double omega);
+        //%cname make_harmonic
+        //%doc
+        // Set v = i*omega*u and a = -omega^2*u
+        // Input:
+        //  omega - forcing frequency in rad/(non-dim time)
+
+    int assign_ids();
+        //%doc
+        // Number the degrees of freedom in the mesh.
+        // Returns the total number of dofs.
+
+    void own_lua(lua_State* L);
+        //%cname own
+        //%doc
+        // Assign ownership of the Lua interpreter L to mesh.
+        // (i.e. when the mesh is deleted, so will be L).
+        // Low-level routine.
+
+    void own_elt(Element* e);
+        //%cname own
+        //%doc
+        // Assign ownership of the element e to mesh.
+        // (i.e. when the mesh is deleted, so will be e).
+        // Low-level routine.
+
+    void get_f(double* R, int n);
+        //%output R(n)
+        //%dummy n
+        //%doc
+        // Get the real part of the force vector from the Mesh object.
+        // Low-level routine: use Mesh_assemble_R instead.
+
+    void get_fi(double* R, int n);
+        //%output R(n)
+        //%dummy n
+        //%doc
+        // Get the imag part of the force vector from the Mesh object.
+        // Low-level routine: use Mesh_assemble_R instead.
+
+    void assemble_R1();
+        //%cname assemble_R
+        //%doc
+        // Assemble the residual vector.
+        // Low-level routine: use Mesh_assemble_R instead.
+
+    void mean_power1(double* E, int ndm, int numnp);
+        //%cname mean_power
+        //%output E(ndm,numnp)
+        //%dummy ndm
+        //%dummy numnp
+        //%doc
+        // Compute the mean power flux.
+        // Low-level routine: use Mesh_mean_power instead.
+};
+
+// -----------------------
+$[
+function [id] = Mesh_add_node(THIS,x)
+% [id] = Mesh_add_node(THIS,x)
+% Add a new node to the mesh at coordinate x.
+
+if size(x,1) ~= Mesh_get_ndm(THIS),  error('Bad coordinate array');  end
+id = Mesh_add_node1(THIS,x)+1;
+$]
+
+$[
+function [id] = Mesh_add_element(THIS, e, etype)
+% [id] = Mesh_add_element(THIS, e, etype)
+% Add elements to the mesh.
+% Inputs:
+%  e     - Connectivity array for the elements to be added
+%  etype - Element type
+
+id = Mesh_add_element1(THIS, e-1, etype)+1;
+$]
+
+// -----------------------
+
+$[
+function x = Mesh_x(THIS,i,j)
+% x = Mesh_x(THIS,i,j)
+% Return the ith coordinate of node j.
+% Inputs:
+%  i  - coordinate index
+%  j  - node number
+
+if i < 1 | i > Mesh_get_ndm(THIS), error('Bad coordinate number'); end
+if j < 1 | j > Mesh_numnp(THIS),   error('Bad node number');       end
+x = Mesh_x1(THIS,i-1,j-1);
+$]
+
+// -----------------------
+
+$[
+function ix = Mesh_ix(THIS,i,j)
+% ix = Mesh_ix(THIS,i,j)
+% Return the ith node of element j
+
+if j < 1 | j > Mesh_numelt(THIS), error('Bad element number'); end
+if i < 1 | i > Mesh_get_nen_elt1(THIS,j-1)
+  ix = 0;
+else
+  ix = Mesh_ix1(THIS,i-1,j-1)+1;
+end
+$]
+
+// -----------------------
+
+$[
+function id = Mesh_id(THIS,i,j)
+% id = Mesh_id(THIS,i,j)
+% Return the ith variable of node j
+
+if j < 1 | j > Mesh_numnp(THIS),   error('Bad element number'); end
+if i < 1 | i > Mesh_get_ndf(THIS), error('Bad dof number');     end
+id = Mesh_id1(THIS,i-1,j-1)+1;
+$]
+
+// -----------------------
+
+$[
+function id = Mesh_branchid(THIS,i,j)
+% id = Mesh_branchid(THIS,i,j)
+% Return the ith variable of branch j
+
+if j < 1 | j > Mesh_numelt(THIS),          error('Bad element number'); end
+if i < 1 | i > Mesh_nbranch_id1(THIS,j-1), error('Bad dof number');     end
+id = Mesh_branchid1(THIS,i-1,j-1)+1;
+$]
+
+// -----------------------
+$[
+function id = Mesh_globalid(THIS,j)
+% id = Mesh_globalid(THIS,j)
+% Return the id for jth global variable
+
+if j < 1 | j > Mesh_numglobals(THIS),      error('Bad global var number'); end
+id = Mesh_globalid1(THIS,j-1)+1;
+$]
+
+// -----------------------
+
+$[
+function nbranch_id = Mesh_nbranch_idj(THIS,j)
+% nbranch_id = Mesh_nbranch_id(THIS,j)
+% Return the number of variables of branch j
+
+if j < 1 | j > Mesh_numelt(THIS),          error('Bad element number'); end
+nbranch_id = Mesh_nbranch_id1(THIS,j-1);
+$]
+
+// -----------------------
+
+$[
+function nen = Mesh_get_nen_elt(THIS,j)
+% nen = Mesh_get_nen_elt(THIS,j)
+% Return the number of nodes for element j
+
+if j < 1 | j > Mesh_numelt(THIS), error('Bad element number'); end
+nen = Mesh_get_nen_elt1(THIS,j-1);
+$]
+
+// -----------------------
+
+$[
+function Mesh_make_harmonic(THIS,omega,units)
+% Mesh_make_harmonic(THIS,omega,units)
+% Set v = i*omega*u and a = -omega^2*u
+% Input:
+%  omega - forcing frequency
+%  units - specify units of forcing frequency (default 'rs'):
+%    'hz': omega is in units of Hz
+%    'rs': omega is in units of rad/s
+
+if nargin < 3
+  c = 1;
+elseif strcmp(units, 'hz')
+  c = 1 / (2*pi);
+end
+
+Mesh_make_harmonic1(THIS, omega*c);
+$]
+
+// -----------------------
+
+void Mesh_get_vector1(Mesh* m, const char* name, double* v,
+                      int n, int is_reduced);
+  //%output v(n)
+
+$[
+function v = Mesh_get_vector(m, name, reduced_type)
+% u = Mesh_get_vector(THIS, name, reduced_type)
+% Return a vector assembled in Lua
+% Inputs:
+%  name       - the name of the Lua function to define the pattern
+%  is_reduced - do we want the reduced (vs full) vector?  Default: 1
+%               0 - not reduced
+%               1 - reduced
+%               2 - not reduced, reshaped
+
+if nargin < 3, reduced_type = 1; end
+if reduced_type == 1
+  n = Mesh_get_numid(m);
+else
+  n = Mesh_get_ndf(m)*Mesh_numnp(m);
+end
+v = Mesh_get_vector1(m, name, n, double(reduced_type == 1));
+if reduced_type == 2
+  v = reshape(v, Mesh_get_ndf(m), Mesh_numnp(m));
+end
+$]
+
+// -----------------------
+
+void Mesh_get_scaling_vector_u1(Mesh* m, double* u, int n, int is_reduced);
+  //%output u(n)
+
+$[
+function u = Mesh_get_scaling_vector_u(m, is_reduced)
+% u = Mesh_get_scaling_vector_u(THIS, is_reduced)
+% Return a vector of scaling parameters for primary variable
+% Inputs:
+%  is_reduced - do we want the reduced (vs full) vector?  Default: 1
+
+if nargin < 2, is_reduced = 1; end
+if is_reduced
+  n = Mesh_get_numid(m);
+else
+  n = Mesh_get_ndf(m)*Mesh_numnp(m);
+end
+u = Mesh_get_scaling_vector_u1(m, n, is_reduced);
+$]
+
+void Mesh_get_scaling_vector_f1(Mesh* m, double* f, int n, int is_reduced);
+  //%output f(n)
+
+$[
+function f = Mesh_get_scaling_vector_f(m, is_reduced)
+% u = Mesh_get_scaling_vector_f(THIS, is_reduced)
+% Return a vector of scaling parameters for dual variable
+% Inputs:
+%  is_reduced - do we want the reduced (vs full) vector?  Default: 1
+
+if nargin < 2, is_reduced = 1; end
+if is_reduced
+  n = Mesh_get_numid(m);
+else
+  n = Mesh_get_ndf(m)*Mesh_numnp(m);
+end
+f = Mesh_get_scaling_vector_f1(m, n, is_reduced);
+$]
+
+// -----------------------
+
+$[
+function f = Mesh_get_lua_fields(m, name, nfields)
+% f = Mesh_get_lua_fields(THIS, name, nfields)
+% Return an array of field values.
+% Inputs:
+%  name      - the name of the Lua function to define the fields
+%  nfields   - number of fields requested
+
+if nargin < 3, nfields = 1; end
+f = Mesh_get_lua_fields1(m, name, nfields, Mesh_numnp(m));
+$]
+
+// -----------------------
+
+$[
+function [R,Ri] = Mesh_assemble_R(m)
+% [R,Ri] = Mesh_assemble_R(THIS)
+% Assemble the system residual vector and return it in R and Ri.
+% Outputs:
+%  R  - real part of the residual vector
+%  Ri - imag part of the residual vector
+
+Mesh_assemble_R1(m);
+n = Mesh_get_numid(m);
+
+if nargout > 0,  R  = Mesh_get_f (m, n);  end
+if nargout > 1,  Ri = Mesh_get_fi(m, n);  end
+$]
+
+// -----------------------
+
+$[
+function [E] = Mesh_mean_power(m)
+% E = Mesh_mean_power(THIS)
+% Compute the time-averaged energy flux at each node.
+
+ndm   = Mesh_get_ndm(m);
+numnp = Mesh_numnp(m);
+E     = Mesh_mean_power1(m, ndm, numnp);
+$]
+
+// -----------------------
+
+void Mesh_set_u1(Mesh* m,
+                 double* u, double* ui, int nu,
+                 double* v, double* vi, int nv,
+                 double* a, double* ai, int na);
+  //%input u(nu), ui(nu), v(nv), vi(nv), a(na), ai(na)
+
+$[
+function Mesh_set_u(m, u, v, a)
+% Mesh_set_u(THIS, u, v, a)
+% Set the displacement, velocity, and acceleration vectors.
+% Inputs:
+%  u - displacement vector (or zero or no arg to clear the mesh u)
+%  v - velocity vector     (or zero or no arg to clear the mesh v)
+%  a - acceleration vector (or zero or no arg to clear the mesh a)
+
+if nargin < 2, u = 0; end
+if nargin < 3, v = 0; end
+if nargin < 4, a = 0; end
+
+if isempty(u), u = 0; end
+if isempty(v), v = 0; end
+if isempty(a), a = 0; end
+
+Mesh_set_u1(m, real(u), imag(u), real(v), imag(v), real(a), imag(a));
+$]
+
+// -----------------------
+void Mesh_get_u1(Mesh* mesh, double* u, double* ui, int n, int cx, int cv, int ca, int reduced);
+  //%output u(n,1), ui(n,1)
+
+$[
+function [u] = Mesh_get_u(msh, cx, cv, ca, is_reduced)
+% u = Mesh_get_u(THIS, cx, cv, ca, is_reduced)
+% Get the node displacement array
+% Inputs:
+%  - cx  For variables (default: 1)
+%  - cv  For 1st derivative variables(default: 0)
+%  - ca  For 2nd derivative variables(default: 0)
+%  - reduced or not?
+
+if nargin < 5, is_reduced = 1; end;
+if nargin < 4, ca = 0; end;
+if nargin < 3, cv = 0; end;
+if nargin < 2, cx = 1; end;
+
+if is_reduced
+  n = Mesh_get_numid(msh);
+else
+  n = Mesh_get_ndf(msh)*Mesh_numnp(msh);
+end
+
+[ur,ui] = Mesh_get_u1(msh, n, cx, cv, ca, is_reduced);
+u = complex(ur,ui);
+$]
+
+// -----------------------
+
+void Mesh_get_disp1(Mesh* mesh, double* u, double* ui, int m, int n);
+  //%output u(m,n), ui(m,n)
+
+$[
+function [u] = Mesh_get_disp(msh)
+% u = Mesh_get_disp(THIS, is_dim)
+% Get the node displacement array
+
+m = Mesh_get_ndf(msh);
+n = Mesh_numnp(msh);
+
+[ur,ui] = Mesh_get_disp1(msh, m, n);
+u = complex(ur,ui);
+$]
+
+// -----------------------
+
+void Mesh_get_force1(Mesh* mesh, double* f, double* fi, int m, int n);
+  //%output f(m,n), fi(m,n)
+
+$[
+function [f] = Mesh_get_force(msh)
+% f = Mesh_get_force(THIS)
+% Get the node displacement array
+
+Mesh_assemble_R1(msh);
+m = Mesh_get_ndf(msh);
+n = Mesh_numnp(msh);
+
+[fr,fi] = Mesh_get_force1(msh, m, n);
+f = complex(fr,fi);
+$]
+
+// -----------------------
+// void Mesh_get_e1(Mesh* mesh, int* e, int nen, int numelt);
+
+void Mesh_get_e1(Mesh* mesh, int* e, int nen, int numelt);
+  //%output e(nen,numelt)
+
+$[
+function e = Mesh_get_e(m)
+% e = Mesh_get_e(THIS)
+% Return the element connectivity array (a maxnen-by-numelt array).
+
+e = Mesh_get_e1(m, Mesh_get_nen(m), Mesh_numelt(m))+1;
+$]
+
+// -----------------------
+
+void Mesh_get_id1(Mesh* mesh, int* id, int ndf, int numnp);
+  //%output id(ndf, numnp)
+
+$[
+function x = Mesh_get_id(m)
+% id = Mesh_get_id(THIS)
+% Return the variable-to-identifier mapping (a maxndf-by-numnp array).
+% Nodal variables subject to displacement BCs are represented by a 0.
+
+x = Mesh_get_id1(m, Mesh_get_ndf(m), Mesh_numnp(m))+1;
+$]
+
+// -----------------------
+
+void Mesh_get_x1(Mesh* mesh, double* x, int ndm, int numnp);
+  //%output x(ndm,numnp)
+
+$[
+function x = Mesh_get_x(m)
+% x = Mesh_get_x(THIS)
+% Return an ndm-by-numnp array of node positions.
+
+x = Mesh_get_x1(m, Mesh_get_ndm(m), Mesh_numnp(m));
+$]
+
+// -----------------------
+
+void Mesh_get_bc1(Mesh* mesh, double* bc, int ndf, int numnp);
+  //%output bc(ndf,numnp)
+
+$[
+function bc = Mesh_get_bc(m)
+% bc = Mesh_get_bc(THIS)
+% Return an ndf-by-numnp array of boundary codes.  The codes are
+%  0 - No boundary condition for this dof
+%  1 - Displacement (essential) boundary conditions
+%  2 - Flux (natural) boundary conditions
+
+bc = Mesh_get_bc1(m, Mesh_get_ndf(m), Mesh_numnp(m));
+$]
+
+// -----------------------
+
+$[
+function [p,e,id,bc,numnp] = Mesh_get_parameters(mesh)
+% [p,e,id,bc,numnp] = Mesh_get_parameters(THIS)
+% Return mesh parameters:
+%  p     - Node position array
+%  e     - Element connectivity array (nen-by-numelt)
+%  id    - Variable identifier array (ndf-by-numnp)
+%  bc    - Boundary condition codes (see Mesh_get_bc)
+%  numnp - Number of nodal points
+
+p       = Mesh_get_x(mesh);
+e       = Mesh_get_e(mesh);
+id      = Mesh_get_id(mesh);
+bc      = Mesh_get_bc(mesh);
+numnp   = Mesh_get_numid(mesh);
+$]
+
+// -----------------------
+
+m_Object Mesh_assemble_dR1(Mesh* m, double cx, double cv, double ca, int reduced);
+
+$[
+function [K] = Mesh_assemble_dR(mesh, cx, cv, ca, reduced)
+% [K] = Mesh_assemble_dR(mesh, cx, cv, ca, reduced)
+% Assembles mass, damping, or stiffness matrix from mesh.
+% If 'reduced' is given     -'reduced=1' Reduced form
+%                           -'reduced=0' Non-reduced form
+
+if nargin < 5, reduced=1; end;
+K = Mesh_assemble_dR1(mesh, cx, cv, ca, reduced);
+$]
+
+
+// -----------------------
+
+m_Object Mesh_element_dR1(Mesh* m, int eltid, double cx, double cv, double ca);
+
+$[
+function [K] = Mesh_element_dR(m, eltid, cx, cv, ca)
+% [K] = Mesh_element_dR(mesh, eltid, cx, cv, ca)
+% Gets scattered mass, damping, or stiffness matrix from mesh element.
+
+numelt = Mesh_numelt(m);
+if eltid < 1 | eltid > numelt, error('Bad element number'); end
+eltid = eltid - 1; % Convert to zero-based
+K = Mesh_element_dR1(m, eltid, cx, cv, ca);
+$]
+
+// -----------------------
+
+$[
+function [K] = Mesh_assemble_k(mesh)
+% [K] = Mesh_assemble_k(mesh)
+% Assemble the stiffness matrix for the mesh.
+
+K = Mesh_assemble_dR(mesh, 1, 0, 0);
+$]
+
+// -----------------------
+
+$[
+function [M,K] = Mesh_assemble_mk(mesh)
+% [M,K] = Mesh_assemble_mk(mesh)
+% Assemble the mass and stiffness matrices for the mesh.
+
+K = Mesh_assemble_dR(mesh, 1, 0, 0);
+M = Mesh_assemble_dR(mesh, 0, 0, 1);
+$]
+
+// -----------------------
+
+$[
+function [M,K,C] = Mesh_assemble_mkc(mesh)
+% [M,K,C] = Mesh_assemble_mkc(mesh)
+% Assemble the mass, stiffness, and damping matrices.
+
+K = Mesh_assemble_dR(mesh, 1, 0, 0);
+M = Mesh_assemble_dR(mesh, 0, 0, 1);
+C = Mesh_assemble_dR(mesh, 0, 1, 0);
+$]
+
+
+// -----------------------
+
+$[
+function [mesh,L] = Mesh_load(fname, p)
+% [mesh,L] = Mesh_load(name, param)
+% Load a mesh from a file.
+% Inputs:
+%  name  - the name of a Lua input file
+%  param - optional structure containing fields to be transferred to Lua
+%          e.g. param.p = 1 --> p = 1 in the Lua environment
+% Outputs:
+%  mesh  - the mesh object
+%  L     - the associated Lua interpreter
+
+% -- Open a new Lua environment and set the mesh var
+L = Lua_open;
+
+% -- Set the LUA_PATH environment variable
+qp = hiqpath;
+if ~isempty(qp)
+  Lua_set_string(L, 'LUA_PATH', qp);
+end
+
+% -- Copy parameters into Lua
+if nargin < 2, p = []; end
+if ~isempty(p)
+  pnames = fieldnames(p);
+  for i = 1:length(pnames)
+    pval = getfield(p, pnames{i});
+    if isa(pval, 'char')
+        Lua_set_string(L, pnames{i}, pval);
+    elseif isa(pval, 'double') & prod(size(pval)) == 1
+        Lua_set_double(L, pnames{i}, pval);
+    elseif isa(pval, 'double')
+        Lua_set_array(L, pnames{i}, pval);
+    else
+        Lua_close(L);
+        error(sprintf('Cannot put %s into Lua', pnames{i}));
+    end
+  end
+end
+
+% -- Run the file
+Lua_dofile(L, fname);
+mesh = Lua_get_mesh(L, 'mesh');
+if real(mesh) == 0
+  Lua_close(L);
+  error('Error loading from Lua.');
+end
+Mesh_own_lua(mesh, L);
+Mesh_initialize(mesh);
+$]

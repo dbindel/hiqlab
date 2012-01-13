@@ -1,0 +1,378 @@
+$#include "qtrilinos_epetra.h"
+$#include "trilinos_epetra_linearproblem.h"
+$#include "trilinos_epetra_matrix.h"
+$#include "trilinos_epetra_vector.h"
+$#include "trilinos_epetra_operator.h"
+$#include "Epetra_DataAccess.h"
+$#include "Epetra_Comm.h"
+$#include "Epetra_MpiComm.h"
+$#include "Epetra_SerialComm.h"
+
+$ extern Epetra_MpiComm* HIQLAB_Comm;
+
+// ---- Bindings for Epetra_Comm ----
+class Epetra_Comm {
+    Epetra_Comm* Clone();
+    ~Epetra_Comm();
+
+    void Barrier();
+    int  MyPID();
+    int  NumProc();
+};
+
+class Epetra_MpiComm : public Epetra_Comm {
+    Epetra_MpiComm(const Epetra_MpiComm& Comm);
+    Epetra_Comm* Clone();
+    ~Epetra_MpiComm();
+
+    void Barrier();
+    int MyPID();
+    int NumProc();
+};
+
+class Epetra_SerialComm : public Epetra_Comm {
+    Epetra_SerialComm(const Epetra_SerialComm& Comm);
+    Epetra_Comm* Clone();
+    ~Epetra_SerialComm();
+
+    void Barrier();
+    int MyPID();
+    int NumProc();
+};
+
+$ Epetra_Comm* Get_Epetra_Comm()
+$ {
+$    return HIQLAB_Comm;
+$ }
+
+Epetra_Comm* Get_Epetra_Comm();
+
+// ---- Bindings for Epetra_Operator  ----
+class Epetra_Operator {
+};
+
+// ---- Bindings for Epetra_RowMatrix ----
+
+class Epetra_RowMatrix : public Epetra_Operator{
+    ~Epetra_RowMatrix();
+    double NormInf();
+    double NormOne();
+    int NumGlobalNonzeros();
+    int NumGlobalRows();
+    int NumGlobalCols();
+    int NumGlobalDiagonals();
+    int NumMyNonzeros();
+    int NumMyRows();
+    int NumMyCols();
+
+    int Multiply(bool TransA, const Epetra_MultiVector& x, Epetra_MultiVector& y);
+
+    Epetra_Comm& Comm();
+};
+
+
+// ---- Bindings for Epetra_CrsMatrix ----
+
+class Epetra_CrsMatrix : public Epetra_RowMatrix {
+    ~Epetra_CrsMatrix();
+    double NormInf();
+    double NormOne();
+    int NumGlobalNonzeros();
+    int NumGlobalRows();
+    int NumGlobalCols();
+    int NumGlobalDiagonals();
+    int NumMyNonzeros();
+    int NumMyRows();
+    int NumMyCols();
+    Epetra_Map& OperatorDomainMap();
+    Epetra_Map& OperatorRangeMap();
+    int Scale(double ScalarConstant);
+    int LeftScale (const Epetra_Vector &x);
+    int        RightScale(const Epetra_Vector &x);
+    int Multiply(bool TransA, const Epetra_Vector& x, Epetra_Vector& y);
+    int Multiply(bool TransA, const Epetra_MultiVector& x, Epetra_MultiVector& y);
+
+    Epetra_Comm& Comm();
+};
+
+int CrsMatrix2MATLAB(Epetra_CrsMatrix* Ap );
+Epetra_CrsMatrix* qRow2CrsMatrix(Epetra_RowMatrix* ERM);
+Epetra_RowMatrix* qCrs2RowMatrix(Epetra_CrsMatrix* ECM);
+
+
+// ---- Bindings for Epetra_MultiVector ----
+
+class Epetra_MultiVector {
+    ~Epetra_MultiVector();
+
+    int GlobalLength();
+
+    int Random();
+
+    int PutScalar (double ScalarConstant);
+    int Dot(const Epetra_MultiVector& A, double *Result);
+    int Abs(const Epetra_MultiVector& A);
+    int Reciprocal(const Epetra_MultiVector& A);
+    int Scale(double ScalarValue);
+    int Scale(double ScalarA, const Epetra_MultiVector& A);
+    int Update(double ScalarA, const Epetra_MultiVector& A, double ScalarThis);
+    int Update(double ScalarA, const Epetra_MultiVector& A,
+               double ScalarB, const Epetra_MultiVector& B, double ScalarThis);
+
+    int Norm1   (double * Result);
+    //int Norm2   (double Result[10]=0);
+    int NormInf (double * Result);
+    int MinValue  (double * Result);
+    int MaxValue  (double * Result);
+};
+
+int MultiVector2MATLAB(Epetra_MultiVector* vp, int index);
+
+int epetra_multivector_norm2(Epetra_MultiVector* emv, int n, double d[n]=0);
+$ inline int epetra_multivector_norm2
+$       (Epetra_MultiVector* emv, int n, double* d)
+$ {
+$     return emv->Norm2(d);
+$ }
+
+$[
+
+function Epetra_MultiVector:Norm2(d)
+    return epetra_multivector_norm2(self, self:NumVectors(), d)
+end
+
+$]
+
+// ---- Bindings for Epetra_Vector ----
+class Epetra_Vector : public Epetra_MultiVector {
+    ~Epetra_Vector();
+    int Norm2   (double Result[1]=0);
+};
+
+int Vector2MATLAB(Epetra_Vector* vp);
+Epetra_Vector* qVectorCreate(int n);
+Epetra_MultiVector* qMultiVectorCreate(int m, int n);
+Epetra_Vector* qMultiVector2Vector(Epetra_MultiVector* EMV);
+Epetra_MultiVector* qVector2MultiVector(Epetra_Vector* EV);
+
+$[
+
+function Epetra_Vector:new(n)
+ return qVectorCreate(n)
+end
+
+function Epetra_MultiVector:new(m,n)
+  local n = n or 1
+  return qMultiVectorCreate(m,n)
+end
+
+$]
+
+// ---- Bindings for Epetra_LinearProblem ----
+
+class Epetra_LinearProblem {
+    Epetra_LinearProblem();
+    Epetra_LinearProblem (Epetra_RowMatrix *A, Epetra_MultiVector *X, Epetra_MultiVector *B);
+    ~Epetra_LinearProblem();
+
+    void SetOperator(Epetra_RowMatrix * A);
+    void SetLHS(Epetra_MultiVector * X);
+    void SetRHS(Epetra_MultiVector * B);
+    Epetra_RowMatrix* GetMatrix();
+    Epetra_MultiVector* GetLHS();
+    Epetra_MultiVector* GetRHS();
+};
+
+// ---- Bindings for Epetra_LinearProblem_Complex ----
+
+class Epetra_LinearProblem_Complex : public Epetra_LinearProblem {
+    Epetra_LinearProblem_Complex(
+                    Epetra_CrsMatrix_Complex *A,
+                    Epetra_MultiVector_Complex *X,
+                    Epetra_MultiVector_Complex *B);
+    Epetra_LinearProblem_Complex(
+                    Epetra_CrsMatrix_Complex *A,
+                    Epetra_Vector_Complex *X,
+                    Epetra_Vector_Complex *B);
+    Epetra_LinearProblem_Complex(
+                    Epetra_RowMatrix *A,   Epetra_RowMatrix *Ai,
+                    Epetra_MultiVector *X, Epetra_MultiVector *Xi,
+                    Epetra_MultiVector *B, Epetra_MultiVector *Bi);
+    Epetra_LinearProblem_Complex();
+    ~Epetra_LinearProblem_Complex();
+
+    void SetOperator_i(Epetra_RowMatrix * Ai);
+    void SetLHS_i(Epetra_MultiVector * Xi);
+    void SetRHS_i(Epetra_MultiVector * Bi);
+    Epetra_RowMatrix* GetMatrix_i();
+    Epetra_MultiVector* GetLHS_i();
+    Epetra_MultiVector* GetRHS_i();
+};
+
+// ---- Bindings for Epetra_CrsMatrix_Complex ----
+
+class Epetra_CrsMatrix_Complex : public Epetra_CrsMatrix{
+ public:
+
+    Epetra_CrsMatrix_Complex(const Epetra_CrsMatrix_Complex& Matrix);
+    Epetra_CrsMatrix_Complex(const Epetra_CrsMatrix& Ax,
+                             const Epetra_CrsMatrix& Az);
+    ~Epetra_CrsMatrix_Complex();
+
+    Epetra_CrsMatrix* get_Az()              { return Az;  };
+
+    int is_real_matrix() const { return is_real; };
+
+    int Multiply(bool TransA, const Epetra_MultiVector_Complex& X,
+                                    Epetra_MultiVector_Complex& Y) const;
+    int Multiply(bool TransA, const Epetra_MultiVector& Xx, const Epetra_MultiVector& Xz,
+                                    Epetra_MultiVector& Yx,       Epetra_MultiVector& Yz) const;
+    int Multiply(bool TransA, const Epetra_Vector_Complex& X,
+                                    Epetra_Vector_Complex& Y) const;
+    int Multiply(bool TransA, const Epetra_Vector& Xx, const Epetra_Vector& Xz,
+                                    Epetra_Vector& Yx,       Epetra_Vector& Yz) const;
+};
+
+// ---- Bindings for Epetra_MultiVector_Complex ----
+
+enum Epetra_DataAccess {Copy, View};
+
+class Epetra_MultiVector_Complex : public Epetra_MultiVector {
+ public:
+
+    Epetra_MultiVector_Complex(const Epetra_MultiVector_Complex& Source);
+    Epetra_MultiVector_Complex(const Epetra_MultiVector& Vx,
+                               const Epetra_MultiVector& Vz);
+
+    Epetra_MultiVector_Complex(Epetra_DataAccess CV,
+          const Epetra_MultiVector_Complex& Source, int *Indices, int NumVectors);
+    Epetra_MultiVector_Complex(Epetra_DataAccess CV,
+          const Epetra_MultiVector& Vx,
+          const Epetra_MultiVector& Vz, int *Indices, int NumVectors);
+
+    Epetra_MultiVector_Complex(Epetra_DataAccess CV,
+          const Epetra_MultiVector_Complex& Source, int StartIndex, int NumVectors);
+    Epetra_MultiVector_Complex(Epetra_DataAccess CV,
+      const Epetra_MultiVector& Vx,
+      const Epetra_MultiVector& Vz, int StartIndex,int NumVectors);
+
+    ~Epetra_MultiVector_Complex();
+
+    Epetra_MultiVector* get_Vz()              { return Vz;  };
+
+    int is_real_vector() const { return is_real; };
+
+    int NumVectors();
+
+    int Random();
+
+    int Scale(double sr, double si);
+    int Scale(double ar, double ai, Epetra_MultiVector_Complex& A);
+
+    int Update(double ar, double ai, Epetra_MultiVector_Complex&A, double sr, double si);
+    int Update(double ar, double ai, Epetra_MultiVector_Complex&A,
+               double br, double bi, Epetra_MultiVector_Complex&B,
+               double sr, double si);
+
+    int PutScalar(double ar, double ai);
+
+    int Dot(const Epetra_MultiVector_Complex& A, double dr[10]=0, double di[10]=0) const;
+
+    // int Norm2(double dr[n]=0, double di[n]=0);
+
+    int Multiply (char TransA, char TransB, double sabr, double sabi,
+                  const Epetra_MultiVector_Complex& A,
+                  const Epetra_MultiVector_Complex& B,
+                  double sr, double si );
+    int Multiply (double sabr, double sabi,
+                  const Epetra_MultiVector_Complex& A,
+                  const Epetra_MultiVector_Complex& B,
+                  double sr, double si );
+
+};
+
+Epetra_MultiVector_Complex* qMultiVectorComplexCreate(int m, int n);
+Epetra_Vector_Complex*      qMulti2SingleComplexVector(Epetra_MultiVector_Complex* v);
+Epetra_MultiVector_Complex* qSingle2MultiComplexVector(Epetra_Vector_Complex* v);
+
+$[
+
+function Epetra_MultiVector_Complex:create(m,n)
+  local n = n or 1
+  return qMultiVectorComplexCreate(m,n)
+end
+
+$]
+
+int epetra_multivector_complex_norm2(Epetra_MultiVector_Complex* emvc, int n, double d[n]=0);
+$ inline int epetra_multivector_complex_norm2
+$       (Epetra_MultiVector_Complex* emvc, int n, double* d)
+$ {
+$     return emvc->Norm2(d);
+$ }
+
+$[
+
+function Epetra_MultiVector_Complex:Norm2(d)
+    return epetra_multivector_complex_norm2(self, self:NumVectors(), d)
+end
+
+$]
+
+// ---- Bindings for Epetra_Vector_Complex ----
+class Epetra_Vector_Complex : public Epetra_Vector {
+ public:
+
+    Epetra_Vector_Complex(const Epetra_Vector_Complex& Source);
+    Epetra_Vector_Complex(const Epetra_Vector& Vx, const Epetra_Vector& Vz);
+
+    Epetra_Vector_Complex(Epetra_DataAccess CV, const Epetra_MultiVector_Complex& Source, int Index);
+    Epetra_Vector_Complex(Epetra_DataAccess CV, const Epetra_MultiVector& Vx,
+                                                 const Epetra_MultiVector& Vz, int Index);
+
+    ~Epetra_Vector_Complex();
+
+    Epetra_Vector* get_Vz()              { return Vz;  };
+
+    int is_real_vector() const { return is_real; };
+
+    int NumVectors();
+
+    int Random();
+
+    int Scale(double sr, double si);
+    int Scale(double ar, double ai, Epetra_Vector_Complex& A);
+
+    int Update(double ar, double ai, Epetra_Vector_Complex&A, double sr, double si);
+    int Update(double ar, double ai, Epetra_Vector_Complex&A,
+               double br, double bi, Epetra_Vector_Complex&B,
+               double sr, double si);
+
+    int PutScalar(double ar, double ai);
+
+    int Dot(const Epetra_Vector_Complex& A, double dr[1]=0, double di[1]=0) const;
+
+    int Norm2(double dr[1]=0);
+};
+
+Epetra_Vector_Complex* qVectorComplexCreate(int n);
+
+$[
+
+function Epetra_Vector_Complex:create(n)
+  local n = n or 1
+  return qVectorComplexCreate(n)
+end
+
+$]
+
+// ---- Bindings for Epetra_Operator_Complex ----
+
+class Epetra_Operator_Complex {
+
+    Epetra_Map & OperatorDomainMap();
+    Epetra_Map & OperatorRangeMap();
+
+};
+
+

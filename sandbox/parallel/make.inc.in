@@ -1,0 +1,125 @@
+#INCLUDE  = @UMF_CFLAGS@ -I$(TOOLS)/lua/include -I$(TOOLS)/tolua++/include
+INCLUDE = -I$(TOOLS)/UFconfig/ \
+	-I$(TOOLS)/AMD/Include -I$(TOOLS)/UMFPACK/Include \
+	-I$(TOOLS)/lua/include -I$(TOOLS)/tolua++/include \
+	 $(MUMPS_INCLUDE) $(SUPERLUDIST_INCLUDE) \
+	 $(METIS_INCLUDE)
+
+CC	 = @CC@
+CXX	 = @CXX@
+CFLAGS	 = @CFLAGS@   $(INCLUDE)
+CXXFLAGS = @CXXFLAGS@ $(INCLUDE)
+CYGPATH  = @CYGPATH@
+HIQINT32 = @HIQINT32@
+F77      = @F77@
+FFLAGS   = @FFLAGS@
+F90      = @F90@
+
+AR	 = @AR@
+RANLIB	 = @RANLIB@
+AWK	 = @AWK@
+
+MEX	 = @MEX@ LD="@CXX@"
+MEXEXT	 = @MEXEXT@
+MEXOCT   = mkoctfile --mex
+#MEXEXT   = mex
+
+SRCDIR   = @abs_top_builddir@/src/
+BINDIR   = @abs_top_builddir@/bin/
+LIBDIR   = @abs_top_builddir@/lib/
+TOOLS    = @abs_top_builddir@/tools/
+MWRAP	 = $(TOOLS)/mwrap/mwrap
+MATEXPR	 = $(TOOLS)/matexpr/matexpr
+TOLUA	 = $(TOOLS)/tolua++/bin/tolua
+DSBWEB   = $(TOOLS)/dsbweb/dsbweb
+
+LIBQLAB    = $(LIBDIR)/libqlab.a
+HIQ        = $(BINDIR)/hiqlab
+HIQ_HYBRID = $(SRCDIR)/lua_hybrid/hiqlab
+
+FLTK_CONFIG   = @FLTK_CONFIG@
+FLTK_CXXFLAGS = @FLTK_CXXFLAGS@
+FLTK_LIBS     = @FLTK_LDFLAGS@
+@HAVE_FLTK_TRUE@MESHVFLTK_BUILD = meshvfltk.build
+
+GD_CFLAGS = @GD_CFLAGS@
+GD_LIBS   = @GD_LDFLAGS@ 
+
+READLINE_LIBS = @READLINE_LIBS@
+LUALIBS	   = -L$(TOOLS)/tolua++/lib -ltolua \
+		-L$(TOOLS)/lua/lib -llua -llualib
+
+#UMF_LIBS    = @UMF_LIBS@
+UMF_LIBS = $(TOOLS)/UMFPACK/Lib/libumfpack.a \
+	   $(TOOLS)/AMD/Lib/libamd.a
+
+LAPACK_LIBS = @LAPACK_LIBS@
+BLAS_LIBS   = @BLAS_LIBS@
+#ARLIBS      = @ARPACK_LIB@
+ARLIBS      = $(TOOLS)/ARPACK/libarpack.a
+
+#SUPERLU_DIR        = $(TOOLS)/SuperLU_3.0
+#SUPERLU_INCLUDE    = $(SUPERLU_DIR)/SRC
+#SUPERLU_LIBS       = $(SUPERLU_DIR)/libsuperlu.a
+
+SUPERLU_DIR        = @SUPERLU_DIR@
+SUPERLU_INCLUDE    = @SUPERLU_INCLUDE@
+SUPERLU_LIBS       = @SUPERLU_LIB@
+
+SUPERLUDIST_DIR    = @SUPERLUDIST_DIR@
+SUPERLUDIST_INCLUDE= @SUPERLUDIST_INCLUDE@
+SUPERLUDIST_LIBS   = @SUPERLUDIST_LIB@
+
+MUMPS_DIR          = @MUMPS_DIR@
+MUMPS_INCLUDE      = @MUMPS_INCLUDE@
+MUMPS_LIBS         = @MUMPS_LIB@
+
+BLACS_LIBS         = @BLACS_LIB@
+SCALAPACK_LIBS     = @SCALAPACK_LIB@
+
+METIS_INCLUDE      = -I$(TOOLS)/ParMetis-3.1/METISLib/
+#METIS_LIBS         = @PARMETIS_LIB@ @METIS_LIB@
+METIS_LIBS         = $(TOOLS)/ParMetis-3.1/libparmetis.a $(TOOLS)/ParMetis-3.1/libmetis.a
+
+SERIAL_METIS_LIBS = $(TOOLS)/metis-4.0/libmetis.a
+
+#TRILINOS_DIR    = $(TOOLS)/trilinos/7.0.5
+#TRILINOS_LIB_DIR= $(TOOLS)/trilinos/7.0.5/hiqlab
+TRILINOS_DIR    = @TRILINOS_DIR@
+TRILINOS_LIB_DIR= @TRILINOS_LIB_DIR@
+
+#PETSC_DIR   = @abs_top_builddir@/tools/petsc/2.3.2-p8
+#PETSC_ARCH  = hiqlab
+PETSC_DIR   = @PETSC_DIR@
+PETSC_ARCH  = @PETSC_ARCH@
+SLEPC_DIR   = @SLEPC_DIR@
+
+F77_LIBS    = @FLIBS@
+MF77_LIBS   = @FLIBS@
+F90_LIBS    = @F90_LIBS@
+OTHER_LIBS  = @LIBS@
+
+LALIBS      = $(SUPERLUDIST_LIBS) $(SUPERLU_LIBS) $(MUMPS_LIBS) \
+		$(SCALAPACK_LIBS) $(METIS_LIBS) $(BLACS_LIBS) \
+		$(ARLIBS) $(UMF_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS)
+MLALIBS     = $(ARLIBS) $(UMF_LIBS) $(LAPACK_LIBS) $(BLAS_LIBS)
+
+LIBS       = $(LUALIBS) $(LALIBS)  $(F77_LIBS)  $(F90_LIBS) $(OTHER_LIBS)
+MEXLIBS    = $(LUALIBS) $(MLALIBS) $(MF77_LIBS) $(F90_LIBS) $(OTHER_LIBS)
+
+VERSION	   = @PACKAGE_VERSION@
+
+
+# -- Specifically for compiling MEX files with the mingw32 toolchain
+
+WMEXINC    = $(TOOLS)/mex-mingw32/mexinc
+WMEXLIBDIR = $(TOOLS)/mex-mingw32/mexlib
+
+WMEXLIBS   = $(WMEXLIBDIR)/fixup.o \
+	$(WMEXLIBDIR)/mexlib1.lib \
+	$(WMEXLIBDIR)/mexlib2.lib \
+	$(WMEXLIBDIR)/mexlib3.lib 
+
+WMEXFLAGS=\
+        -DMATLAB_MEX_FILE -I $(WMEXINC) -O3 \
+        -malign-double -fno-exceptions -mcpu=pentium 

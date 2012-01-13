@@ -1,0 +1,173 @@
+(See bottom for extensions to Matwrap. -- dbindel)
+
+Have you ever wanted to call subroutines from a C library from a
+scripting language like MATLAB or octave or tela?  Have you ever wanted
+to write your own simulation in C and have its functions be directly
+callable from MATLAB, instead of going through output files?  It is very
+tedious and error-prone to write the wrapper functions which convert
+from MATLAB's types to the float or double or int types that your
+functions actually want.
+
+matwrap is a perl script that generates the wrapper functions for you
+automatically from your .h files.  Suppose, for example, that you've
+defined a C++ class like this:
+
+class Simulator {
+public:
+  Simulator(int a, float b);
+  int do_something();
+  ~Simulator();
+  double param;
+
+private:
+	// ...
+};
+
+matwrap defines the MATLAB/octave/whatever functions
+
+	sim_ptr = Simulator_new(a, b)
+	result = Simulator_do_something(sim_ptr)
+	Simulator_delete(sim_ptr)
+	param_value = Simulator_get_param(sim_ptr)
+	Simulator_set_param(sim_ptr, param_value)
+
+which call the member functions or set the data member.  All you have to
+do is to provide the C++ definition of your class to the program.  You
+don't have to learn anything about MATLAB or octave internals.
+
+matwrap also automatically vectorizes your functions.
+Suppose, for example, you have a function like this:
+
+  double my_special_func(double arg1, double arg2, double arg3);
+
+You can supply a vector or matrix argument for either arg1 or arg2, like
+this in MATLAB:
+
+>> A = [1, 2; 3, 4]; B = [5, 6; 7, 8]; C = 9;
+>> res = my_special_func(A, B, C);
+
+The C function my_special_func is called 4 times, once for each element
+of A and B, and the result is returned as a matrix.  This happens
+automatically, without any special declarations in your code at all.
+
+You can also supply a vector argument, like this:
+
+  void plot_vector(int n_elements, float *vec); //%input vec[n_elements]
+
+In this case, by adding the comment "//%input...", you tell
+matwrap that the calling sequence from MATLAB should be
+
+  plot_vector(xyz)
+
+and that n_elements should be computed from the number of rows of the
+vector xyz.
+
+I have used matwrap to wrap my C++ simulations, which have
+dozens of members and member functions, as well as the entire pgplot
+plotting library.
+
+matwrap currently supports the languages Matlab (version
+5.0), octave, and tela.  Other languages can be added with a little bit
+of work.
+
+The idea for matwrap came from Dave Beazley's SWIG, a wrapper generator
+for non-matrix languages like perl, python, and TCL.  Wrapper generation
+for matrix languages requires a number of additional features not
+present in SWIG, so this wrapper generator was written.  Hopefully the
+features found in matwrap will eventually be incorporated into SWIG, but
+for the moment it is entirely separate.
+
+matwrap requires a relatively recent version of perl (it was tested with
+5.004 and 5.005) and a C++ compiler such as gcc (even if you are
+wrapping C code).  It has only been developed on unix; the wrapper
+generation should work fine on other platforms but some modifications
+
+You can pick up the latest distribution from
+http://LNC.usc.edu/~holt/matwrap/.
+
+Gary Holt (holt@klab.caltech.edu)
+13 Dec 1999
+
+
+--------------------------------------------------------------------
+
+Extensions to Matwrap
+
+I've made the following extensions to Matwrap in order to make it
+easier to write the wrappers I want for HiQLab.
+
+
+- Package files
+
+The original version of Matwrap accepts only header files (.h / .hh
+files), which it expects to be a valid C++ header file which can be
+included in the generated wrapper.  However, Matwrap gets confused by
+some of the changes in standard C++ since it was developed.  Rather
+than extend the parser, we introduce package files (.pkg), which are
+cleaned header files used to define the interface to Matwrap.  Package
+files are *not* treated as header files to be included in other code.
+
+
+- Inlined source
+
+To support package files, we need some way of including the *actual*
+headers into the wrapper file.  To do this, we allow lines which start
+with a dollar to be included directly into the top of the generated
+wrapper file.  For example, in foo.pkg we might have
+
+	$#include "foo.h"
+
+	void some_function(int value);
+
+where some_function is defined as an inline, macro, template, or
+whatever inside foo.h.
+
+
+- Inlined function files
+
+In order to match the C++ interfaces more naturally to a MATLAB style,
+we may want to define an additional layer of MATLAB wrapper
+functions.  Rather than directly write a new file for every little
+wrapper, we allow the MATLAB function to be defined inside of the
+package file, surrounded by $[ and $].  For example:
+
+	void some_function1(Foo* foo, double* x, int m, int n);
+		//%output x(m,n)
+	$[
+	function x = some_function(foo)
+	m = Foo_m(foo);
+	n = Foo_n(foo);
+	x = some_function1(foo, m, n);
+	$]
+
+Matwrap scans each piece of wrapper code in $[ ]$ for function names,
+and uses the first function name found in each as the file name.  In
+this case, the wrapper code would be written to some_function.m.
+
+
+- m_Objects
+
+It's sometimes useful to directly work with MATLAB objects that have
+no standard C++ counterparts, such as sparse matrices.  Matwrap now
+supports an intrinsic type called m_Object which maps to an mxArray*
+type, and can be used to pass unprocessed mxArray objects to and from
+wrappers.  Like wrappers involving strings, wrappers that involve
+mutable m_Objects cannot be vectorized.
+
+
+- Internal changes
+
+There are several minor internal changes which do not change the
+visible behavior much, but only fix issues that came up while I was
+using Matwrap:
+ - The file skeleton has been modified to deal gracefully with the
+changed behavior of the C++ complex types.
+ - Patched to correct a problem where Matwrap would gobble up
+separators between classes and following functions (and then get
+confused processing functions).
+ - Patched to put class definitions on par with class forward
+declarations in terms of use by later functions.
+
+
+David Bindel (dbindel@eecs.berkeley.edu)
+13 Oct 2004

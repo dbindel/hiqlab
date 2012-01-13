@@ -1,0 +1,61 @@
+
+$#include "mesh.h"
+
+$#include "petscvec.h"
+$#include "petscmat.h"
+$#include "petscksp.h"
+
+$#include "slepceps.h"
+
+$#include "qslepc.h"
+
+// ---- Bindings for Slepc
+
+int compute_eigs_slepc(Mat Kshift, Mat M, int nev,
+                double dr[nev]=0, double di[nev]=0, Vec vz);
+
+// -- Compute with mesh directly
+
+int compute_eigs_slepc(Mesh* mesh, double w0,
+                 int nev, double dr[nev]=0, double di[nev]=0,
+                 Vec vz);
+
+
+$[
+local compute_eigs_slepc1 = compute_eigs_slepc
+function compute_eigs_slepc(mesh, w0, nev, dr, di, vz)
+
+  -- Allow pass-by-name
+  if not w0 and type(mesh) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = 0 or p.w0
+    nev  = 1 or p.nev
+    pl   = p.pl
+    dr   = p.dr
+    di   = p.di
+    vz   = p.vz
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {}
+    di = {}
+    for i=1,nev do
+      dr[i] = 0
+      di[i] = 0
+    end
+  end
+
+  if not vz then
+      numid = mesh:get_numid()
+      vz = VecCreate()
+      VecSetSizes(vz, PETSC_DECIDE, numid)
+      VecSetFromOptions(vz)
+  end
+
+  local status = compute_eigs_slepc1(mesh, w0, nev, dr, di, vz)
+  return status, dr, di, vz
+
+end
+$]

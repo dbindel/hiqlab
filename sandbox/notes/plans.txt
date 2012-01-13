@@ -1,0 +1,35 @@
+Paper plans:
+
+IJNME paper:
+ - Thermoelastic damping
+ - Resolution of the imaginary part of the eigenvalue
+ - Interpretation of the PML elements via coordinate transformation
+ - Exploiting the low rank structure of Im(A)
+ - Srikar and Senturia example
+ - Convergence study
+
+JMEMS:
+ - Synopsis of PML + co
+ - Michigan disk resonators
+ - Model reduction
+ - Study of mode-mixing
+
+JMEMS: 
+ - Synopsis of PML + co (ref to tech report)
+ - Lame mode resonator
+ - SiGe BLR
+ - Michigan disk resonators
+
+Examples:
+  BLR
+  Mich disk (Si and Si-diamond)
+  Beam example from Srikar and Senturia
+  Coupled Lame-mode resonators
+  Ping Brian Bircumshaw regarding RBAR example?
+
+Cycle -- finish examples, write paper, and revise examples.
+
+Convergence analysis is basically done.  Try putting in a wave reflector
+or something like that to illustrate that we're getting reasonable results
+and that we can predict something useful.  Still waiting on material
+parameters.

@@ -1,0 +1,140 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ */
+
+$#include "mesh.h"
+$#include "qarray.h"
+$#include "mesh_partition.h"
+$#include "mesh_partitioner.h"
+$#include "mesh_partition_util.h"
+$#include "mesh_add_block.h"
+
+// -- Mesh_Partition bindings -------------------------------
+
+dnl -- Define helper macros --
+
+define(`defq_mesh_accessor',`
+    $1 $2      (int i);')
+
+dnl --------------------------
+
+class Mesh_Partition : public Mesh {
+
+    Mesh_Partition(int pid, int ndm, int maxnen=0, int maxndf=0);
+    ~Mesh_Partition();
+
+    void set_pid(int id);
+    int  get_pid();
+
+    void set_nodes( int numnp,  int nps[numnp]);
+    void set_ntie_map(int numnp, int tmap[numnp]);
+    void set_npart_map(int numnp, int pmap[numnp]);
+
+    void set_elements(int numelt, int elts[numelt]);
+    void set_epart_map(int numelt, int pmap[numelt]);
+
+    int get_pnumid();
+
+    defq_mesh_accessor(`int',`idg')
+
+    void set_ids_range(int start, int end1);
+    // void set_node_ids(int numnp, int ndf, int* nodeids);
+};
+
+$ void Mesh_Partition_set_node_ids(Mesh_Partition* mesh, int numnp, int ndf, int numnpxndf, int* nodeids)
+$ {
+$     mesh->set_node_ids(numnp,ndf,nodeids);
+$ }
+void Mesh_Partition_set_node_ids(Mesh_Partition* mesh, int numnp, int ndf, int numnpxndf, 
+                                                              int nodeids[numnpxndf]);
+
+$[
+local Mesh_Partition_new = Mesh_Partition.new
+function Mesh_Partition.new(...)
+  local mesh = Mesh_Partition_new(unpack(arg))
+  mesh:set_lua()
+  return mesh
+end
+
+function Mesh_Partition:set_partition(mpr,fname,func)
+    mpr:read_partition(self,fname)
+    self = func(self)
+    self:initialize()
+    mpr:read_partition_ids(self,fname)
+end
+$]
+
+
+// -- Mesh_Partition_Writer bindings -------------------------------
+
+class Mesh_Partition_Writer {
+    Mesh_Partition_Writer();
+    ~Mesh_Partition_Writer();
+
+    void write_mesh(Mesh_Partitioner* mp, const char* fname);
+    void write_partition(Mesh_Partitioner* mp, int ni, const char* fname);
+    // void write_nemap(Mesh_Partitioner* mp, int* nemap, const char* fname);
+};
+
+$ inline void Mesh_Partition_Writer_write_nemap1(Mesh_Partition_Writer* mpw, Mesh_Partitioner* mp, 
+$                                                  int numnp, int* nemap, const char* fname)
+$ {
+$     mpw->write_nemap(mp,nemap,fname);
+$ }
+$
+$ inline void Mesh_Partition_Writer_write_nemap2(Mesh_Partition_Writer* mpw, Mesh_Partitioner* mp, 
+$                                                Mesh_Add_Block* from, Mesh_Add_Block* to,
+$                                                const char* fname)
+$ {
+$     int numnp_t = to->numnp();
+$     int* nemap  = new int[numnp_t];
+$     to->node_element_mapping(from,nemap);
+$     mpw->write_nemap(mp,nemap,fname);
+$     delete[] nemap;
+$ }
+
+void Mesh_Partition_Writer_write_nemap1(Mesh_Partition_Writer* mpw, Mesh_Partitioner* mp, 
+                                                 int numnp, int nemap[numnp], const char* fname);
+void Mesh_Partition_Writer_write_nemap2(Mesh_Partition_Writer* mpw, Mesh_Partitioner* mp, 
+                                                Mesh_Add_Block* from, Mesh_Add_Block* to,
+                                                const char* fname);
+
+$[
+function Mesh_Partition_Writer:write_nemap1(mp, numnp, nemap, fname)
+    Mesh_Partition_Writer_write_nemap1(self,mp,numnp,nemap,fname)
+end
+function Mesh_Partition_Writer:write_nemap(mp, from, to, fname)
+    Mesh_Partition_Writer_write_nemap2(self,mp,from,to,fname)
+end
+$]
+
+
+// -- Mesh_Partition_Reader bindings -------------------------------
+
+class Mesh_Partition_Reader {
+    Mesh_Partition_Reader();
+    ~Mesh_Partition_Reader();
+
+    void read_partition(Mesh_Partition* mp, const char* fname);
+    void read_partition_ids(Mesh_Partition* mesh, const char* fname);
+    // int* read_partition_nemap(Mesh_Partition* mesh, const char* fname);
+};
+
+$ inline void Mesh_Partition_Reader_read_partition_nemap(Mesh_Partition_Reader* mpr, Mesh_Partition* mesh,
+$                                                        int numnp, int* nemap, const char* fname)
+$ {
+$     int* nemap2 = mpr->read_partition_nemap(mesh,fname);
+$     memcpy(nemap,nemap2,numnp*sizeof(int));
+$     delete[] nemap2;
+$ }
+void Mesh_Partition_Reader_read_partition_nemap(Mesh_Partition_Reader* mpr, Mesh_Partition* mesh,
+                                                        int numnp, int nemap[numnp]=0, const char* fname);
+
+$[
+function Mesh_Partition_Reader:read_partition_nemap(mp, fname)
+    local nemap = {}
+    local numnp = mp:numnp()
+    Mesh_Partition_Reader_read_partition_nemap(self,mp,numnp,nemap,fname)
+    return nemap
+end
+$]

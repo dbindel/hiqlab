@@ -1,0 +1,52 @@
+*** mkoctfile_fixed	Wed Oct 15 22:02:36 1997
+--- mkoctfile.new	Wed Oct 15 22:03:51 1997
+***************
+*** 3,19 ****
+  # mkoctfile -- create a .oct file suitable for dynamic linking by
+  # Octave.
+  
+! set -e
+! 
+! if [ $# -eq 1 ]; then
+    srcfile="$1"
+    basnm=`echo $srcfile | sed 's,\.cc$,,'`
+    objfile=$basnm.o
+    octfile=$basnm.oct
+! else
+!   echo "usage: mkoctfile file.cc" 1>&2
+!   exit 1
+! fi
+  
+  # Configuration:  these variables are filled in at configuration time.
+  
+--- 3,21 ----
+  # mkoctfile -- create a .oct file suitable for dynamic linking by
+  # Octave.
+  
+! #if [ $# -eq 1 ]; then
+    srcfile="$1"
+    basnm=`echo $srcfile | sed 's,\.cc$,,'`
+    objfile=$basnm.o
+    octfile=$basnm.oct
+! #else
+! #  echo "usage: mkoctfile file.cc" 1>&2
+! #  exit 1
+! #fi
+! 
+! shift			# Access the remaining arguments.
+! 
+! set -e
+  
+  # Configuration:  these variables are filled in at configuration time.
+  
+***************
+*** 54,57 ****
+  
+  echo "making $octfile from $objfile"
+  
+! $SH_LD $SH_LDFLAGS -o $octfile $objfile
+--- 56,59 ----
+  
+  echo "making $octfile from $objfile"
+  
+! $SH_LD $SH_LDFLAGS -o $octfile $objfile $*

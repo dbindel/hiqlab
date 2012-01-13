@@ -1,0 +1,33 @@
+#
+# Make file for bib_gen installation.
+#
+# To do the installation, set PREFIX to contain the directory hierarchy
+# you want to install it in, and type "make install".  If you want to
+# leave it where it is, just type "make install.here".
+#
+PERL	= @PERL@
+PREFIX	= /usr/local
+
+#
+# Don't change anything below this line:
+#
+BIN_FILES = bin/matwrap
+S=share/matwrap
+SHARE_FILES = $S/wrap_matlab.pl $S/wrap_octave.pl $S/wrap_tela.pl \
+	$S/matwrap.pod \
+	$S/mkoctfile_2_0_8_or_9.patch \
+	$S/mkoctfile_before_2_0_8.patch
+
+EXTRA_FILES = README INSTALL install.pl Makefile ChangeLog TODO
+
+install::
+	$(PERL) install.pl -prefix $(PREFIX) $(BIN_FILES) $(SHARE_FILES)
+
+install.here::
+	$(PERL) install.pl -prefix . $(BIN_FILES) $(SHARE_FILES)
+
+matwrap.tar: $(EXTRA_FILES) $(BIN_FILES) $(SHARE_FILES) $(EXAMPLE_FILES)
+	tar cf matwrap.tar 
+
+matwrap.tar.gz: $(EXTRA_FILES) $(BIN_FILES) $(SHARE_FILES) $(EXAMPLE_FILES)
+	cd ..; tar --create --gzip --file $@ `echo " $^" | sed 's@ @ matwrap/@g'`

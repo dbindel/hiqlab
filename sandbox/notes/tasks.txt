@@ -1,0 +1,22 @@
+
+- Visualization in 3D case?
+
+- Set up BLR example
+  - Build mesh
+  - Try Matlab until it croaks...
+
+- Finish moving code to C, parallelize if needed
+  - Mesh tie code
+  - UMFPACK call
+  - ARPACK call
+  - Visualization?
+
+- Perturbation analysis
+  - For computing the imaginary part of the eigenvalue?
+  - For variations in the Q value with respect to geometry changes?
+  - For trying to determine needed resolution a priori?
+    (and deciding why it seems to need to be so high?)
+
+- Question from Ushinish: analysis in axisymmetric case?
+
+- Thermoelastic + PML combination

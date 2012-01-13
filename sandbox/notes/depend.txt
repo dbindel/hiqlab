@@ -1,0 +1,7 @@
+corelib:
+element: corelib
+io:      corelib
+numeric: corelib
+lua:     corelib element io numeric
+mex:     corelib element io numeric lua
+

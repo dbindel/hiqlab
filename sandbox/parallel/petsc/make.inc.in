@@ -1,0 +1,14 @@
+@HAVE_HIQLAB_SLEPC_TRUE@USE_SLEPC_OBJS = $(SLEPC_OBJS)
+@HAVE_HIQLAB_SLEPC_TRUE@SLEPC_INCLUDE  = -I${SLEPC_DIR}/include
+@HAVE_HIQLAB_SLEPC_TRUE@SLEPC_LIBS     = -L${SLEPC_DIR}/lib/${PETSC_ARCH}/ -lslepc
+
+PETSC_LIBS = -L${PETSC_DIR}/lib/${PETSC_ARCH}/ \
+		-lpetscksp -lpetscdm -lpetscmat -lpetscvec -lpetsc 
+
+PETSC_INCLUDE = -I${PETSC_DIR}/ \
+                -I${PETSC_DIR}/bmake/${PETSC_ARCH}/ \
+                -I${PETSC_DIR}/include
+
+HYPRE_LIBS       = $(HYPRE_LIB)
+X_LIBS           = $(X11_LIB)
+PROMETHEUS_LIBS  = $(PROMETHEUS_LIB)

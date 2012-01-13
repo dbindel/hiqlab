@@ -1,0 +1,259 @@
+
+$#include "mesh.h"
+
+$#include "Epetra_Vector.h"
+$#include "Epetra_CrsMatrix.h"
+
+$#include "qtrilinos_anasazi.h"
+$#include "qtrilinos_epetra.h"
+$#include "trilinos_anasazi.h"
+$#include "trilinos_epetra_vector.h"
+$using Teuchos::ParameterList;
+
+// ---- Bindings for Anasazi
+
+enum MsgType {
+    Anasazi_Error = 0,                  /*!< Errors [ always printed ] */
+    Anasazi_Warning = 0x1,              /*!< Internal warnings */
+    Anasazi_IterationDetails = 0x2,     /*!< Approximate eigenvalues, errors */
+    Anasazi_OrthoDetails = 0x4,         /*!< Orthogonalization/orthonormalization details */
+    Anasazi_FinalSummary = 0x8,         /*!< Final computational summary */
+    Anasazi_TimingDetails = 0x10,       /*!< Timing details */
+    Anasazi_Debug = 0x20                /*!< Debugging information */
+};
+
+enum SolverType {
+    Anasazi_BlockKrylovSchur = 0,
+    Anasazi_BlockDavidson    = 1,
+    Anasazi_LOBPCG           = 2
+};
+
+
+// -- Bindings for real implementations
+int compute_eigs_anasazi(Epetra_Operator* Op,
+                 int nev, ParameterList* pl,
+                 double dr[nev]=0, double di[nev]=0,
+                 Epetra_MultiVector* v);
+
+int compute_eigs_anasazi(Epetra_CrsMatrix* K,
+                         Epetra_CrsMatrix* M,
+                 int nev, ParameterList* pl,
+                 double dr[nev]=0, double di[nev]=0,
+                 Epetra_MultiVector* v);
+
+int compute_eigs_anasazi(Epetra_CrsMatrix* Kshift,
+                         Epetra_CrsMatrix* M,
+                 double w0, int form,
+                 int nev, ParameterList* pl,
+                 double dr[nev]=0, double di[nev]=0,
+                 Epetra_MultiVector* v);
+
+int compute_eigs_anasazi(Mesh* mesh, double w0,
+                 int nev, ParameterList* pl,
+                 double dr[nev]=0, double di[nev]=0,
+                 Epetra_MultiVector* v);
+
+// -- Bindings for complex implementations
+int compute_eigs_anasazi(Epetra_Operator_Complex* Op,
+                 int nev, ParameterList* pl,
+                 double dr[nev]=0, double di[nev]=0,
+                 Epetra_MultiVector_Complex* v);
+
+int compute_eigs_anasazi(Epetra_CrsMatrix_Complex* K,
+                         Epetra_CrsMatrix_Complex* M,
+                 int nev, ParameterList* pl,
+                 double dr[nev]=0, double di[nev]=0,
+                 Epetra_MultiVector_Complex* v);
+
+int compute_eigs_anasazi(Epetra_CrsMatrix_Complex* Kshift,
+                         Epetra_CrsMatrix_Complex* M,
+                 double w0, int form,
+                 int nev, ParameterList* pl,
+                 double dr[nev]=0, double di[nev]=0,
+                 Epetra_MultiVector_Complex* v);
+
+int compute_eigs_anasazi(Mesh* mesh, double w0,
+                 int nev, ParameterList* pl,
+                 double dr[nev]=0, double di[nev]=0,
+                 Epetra_MultiVector_Complex* vz);
+
+void undo_spectral_trans(int nev, double sr, double si, int form, double dr[nev], double di[nev]);
+
+$[
+compute_eigs_anasazi1 = compute_eigs_anasazi
+function compute_eigs_anasazi(mesh, w0, nev, pl, dr, di, vr)
+
+  -- Allow pass-by-name
+  if not w0 and type(mesh) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = 0 or p.w0
+    nev  = 5 or p.nev
+    pl   = p.pl
+    dr   = p.dr
+    di   = p.di
+    vr   = p.vr
+    vi   = p.vi
+  end
+
+  -- Default ncv value
+  local ownspl = false;
+  if not pl then
+    pl = ParameterList:new()
+    ownspl = true
+    pl:set_int   ("Solver", Anasazi_BlockKrylovSchur)
+    pl:set_int   ("Block Size",        2)
+    pl:set_int   ("Num Blocks",        4)
+    pl:set_int   ("Maximum Restarts",    100)
+    pl:set_double("Convergence Tolerance", 1.0e-6)
+    pl:set_string("Sigma",          "LM")
+    pl:set_int("Verbosity", Anasazi_Warning+Anasazi_FinalSummary)
+    pl:set_int("IsSymmetric",          0)
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {}
+    di = {}
+    for i=1,nev do
+      dr[i] = 0
+      di[i] = 0
+    end
+  end
+
+  if not vr then
+      numid = mesh:get_numid()
+      vr    = Epetra_MultiVector:new(numid,1*nev)
+  end
+
+  local status = compute_eigs_anasazi1(mesh, w0, nev, pl, dr, di, vr)
+
+  -- Clean up
+  if (ownspl) then
+      pl:delete()
+  end
+
+  return status, dr, di, vr
+
+end
+
+function AnasaziDefaultPL()
+
+    pl = ParameterList:new()
+    pl:set_int   ("Solver", Anasazi_BlockKrylovSchur)
+    pl:set_int   ("Block Size",        2)
+    pl:set_int   ("Num Blocks",        4)
+    pl:set_int   ("Maximum Restarts",    100)
+    pl:set_double("Convergence Tolerance", 1.0e-8)
+    pl:set_string("Sigma",          "LM")
+    pl:set_int("Verbosity", Anasazi_Warning+Anasazi_FinalSummary+Anasazi_IterationDetails+Anasazi_Debug+Anasazi_OrthoDetails)
+    pl:set_int("IsSymmetric",          0)
+
+    return pl
+end
+
+function eigs_anasazi_complex(Kshift, M, w0, nev, pl, dr, di, vz)
+
+  -- Allow pass-by-name
+  if not w0 and type(Kshift) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = 0 or p.w0
+    nev  = 5 or p.nev
+    pl   = p.pl
+    dr   = p.dr
+    di   = p.di
+    vz   = p.vz
+  end
+
+  -- Default ncv value
+  local ownspl = false;
+  if not pl then
+      pl = AnasaziDefaultPL()
+      ownspl = true
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {}
+    di = {}
+    for i=1,nev do
+      dr[i] = 0
+      di[i] = 0
+    end
+  end
+
+  if not vz then
+      numid = Kshift:NumGlobalRows()
+      vz    = Epetra_MultiVector_Complex:create(numid,nev)
+  end
+
+  local form   = 1 -- Squared form
+  local status = compute_eigs_anasazi1(Kshift, M, w0, form, nev, pl, dr, di, vz)
+
+  -- Clean up
+  if (ownspl) then
+      pl:delete()
+  end
+
+  return status, dr, di, vz
+
+end
+
+function compute_eigs_anasazi_complex(mesh, w0, nev, pl, dr, di, vz)
+
+  -- Allow pass-by-name
+  if not w0 and type(mesh) == 'table' then
+    local p = mesh
+    mesh = p.mesh
+    w0   = 0 or p.w0
+    nev  = 5 or p.nev
+    pl   = p.pl
+    dr   = p.dr
+    di   = p.di
+    vz   = p.vz
+  end
+
+  -- Default ncv value
+  local ownspl = false;
+  if not pl then
+    pl = ParameterList:new()
+    ownspl = true;
+    pl:set_int   ("Solver", Anasazi_BlockKrylovSchur)
+    pl:set_int   ("Block Size",        2)
+    pl:set_int   ("Num Blocks",        4)
+    pl:set_int   ("Maximum Restarts",    100)
+    pl:set_double("Convergence Tolerance", 1.0e-8)
+    pl:set_string("Sigma",          "LM")
+    pl:set_int("Verbosity", Anasazi_Warning+Anasazi_FinalSummary+Anasazi_IterationDetails+Anasazi_Debug+Anasazi_OrthoDetails)
+    pl:set_int("IsSymmetric",          0)
+  end
+
+  -- Initialize tables
+  if not dr then
+    dr = {}
+    di = {}
+    for i=1,nev do
+      dr[i] = 0
+      di[i] = 0
+    end
+  end
+
+  if not vz then
+      numid = mesh:get_numid()
+      vz    = Epetra_MultiVector_Complex:create(numid,nev)
+  end
+print('here??')
+  local status = compute_eigs_anasazi1(mesh, w0, nev, pl, dr, di, vz)
+
+  -- Clean up
+  if (ownspl) then
+      pl:delete()
+  end
+
+  return status, dr, di, vz
+
+end
+
+
+$]

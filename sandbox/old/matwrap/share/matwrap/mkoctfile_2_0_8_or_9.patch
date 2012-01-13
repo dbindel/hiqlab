@@ -1,0 +1,83 @@
+*** mkoctfile_fixed	Wed Oct 15 21:12:44 1997
+--- mkoctfile.new	Wed Oct 15 21:08:34 1997
+***************
+*** 40,45 ****
+--- 40,46 ----
+  
+  cfiles=
+  ccfiles=
++ ccflags=
+  f77files=
+  objfiles=
+  octfiles=
+***************
+*** 100,106 ****
+  EOF
+        exit 0
+      ;;
+!     -l*)
+        ldflags="$ldflags $1";;
+      "")
+        break
+--- 101,109 ----
+  EOF
+        exit 0
+      ;;
+!     -[ID]* )
+!       ccflags="$ccflags $1";;
+!     -[lL]* | *.a )
+        ldflags="$ldflags $1";;
+      "")
+        break
+***************
+*** 154,161 ****
+      b=`echo $f | sed 's,\.c$,,'`
+      o=$b.o
+      objfiles="$objfiles $o"
+!     $dbg $CC -c $CPPFLAGS $CPICFLAG $ALL_CFLAGS $f -o $o
+!     eval $CC -c $CPPFLAGS $CPICFLAG $ALL_CFLAGS $f -o $o
+    done
+  fi
+  
+--- 157,164 ----
+      b=`echo $f | sed 's,\.c$,,'`
+      o=$b.o
+      objfiles="$objfiles $o"
+!     $dbg $CC -c $CPPFLAGS $CPICFLAG $ALL_CFLAGS $ccflags $f -o $o
+!     eval $CC -c $CPPFLAGS $CPICFLAG $ALL_CFLAGS $ccflags $f -o $o
+    done
+  fi
+  
+***************
+*** 174,188 ****
+      esac
+      o=$b.o
+      objfiles="$objfiles $o"
+!     $dbg $CXX -c $CPPFLAGS $CXXPICFLAG $ALL_CXXFLAGS $f -o $o
+!     eval $CXX -c $CPPFLAGS $CXXPICFLAG $ALL_CXXFLAGS $f -o $o
+    done
+  fi
+  
+  # Link all the object files.
+  
+! $dbg $SH_LD $SH_LDFLAGS -o $octfile $objfiles
+! eval $SH_LD $SH_LDFLAGS -o $octfile $objfiles
+  
+  # Maybe strip it.
+  
+--- 177,191 ----
+      esac
+      o=$b.o
+      objfiles="$objfiles $o"
+!     $dbg $CXX -c $CPPFLAGS $CXXPICFLAG $ALL_CXXFLAGS $ccflags $f -o $o
+!     eval $CXX -c $CPPFLAGS $CXXPICFLAG $ALL_CXXFLAGS $ccflags $f -o $o
+    done
+  fi
+  
+  # Link all the object files.
+  
+! $dbg $SH_LD $SH_LDFLAGS -o $octfile $objfiles $ldflags
+! eval $SH_LD $SH_LDFLAGS -o $octfile $objfiles $ldflags
+  
+  # Maybe strip it.
+  

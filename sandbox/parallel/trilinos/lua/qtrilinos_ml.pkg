@@ -1,0 +1,27 @@
+$#include "qtrilinos_ml.h"
+
+$using Teuchos::ParameterList;
+$using ML_Epetra::MultiLevelPreconditioner;
+
+void ML_Epetra_SetDefaults(ParameterList* MLList, const string& name);
+
+MultiLevelPreconditioner* qCreate_ML_Epetra_MultiLevelPreconditioner
+                       (Epetra_CrsMatrix* SM, ParameterList* MLList);
+
+class MultiLevelPreconditioner : public Epetra_Operator
+{
+    ~MultiLevelPreconditioner();
+    int ComputePreconditioner(const bool CheckFiltering);
+    int        AnalyzeHierarchy (const bool AnalyzeMatrices, const int PreCycles,
+                          const int PostCycles, const int MLCycles);
+    int        AnalyzeSmoothers (const int NumPreCycles, const int NumPostCycles);
+    int AnalyzeCoarse ();
+    int AnalyzeCycle (const int NumCycles);
+    int TestSmoothers (ParameterList &InputList,
+                      const bool IsSymmetric);
+    int TestSmoothers (const bool IsSymmetric);
+
+    int VisualizeAggregates ();
+    int VisualizeSmoothers (int NumPrecCycles, int NumPostCycles);
+    int VisualizeCycle (int NumCycles);
+};

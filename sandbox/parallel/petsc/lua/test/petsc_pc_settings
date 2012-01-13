@@ -1,0 +1,121 @@
+
+ NPROC     = 2
+
+#FEAPRUN   = valgrind -v --leak-check=full --show-reachable=yes $(FEAPHOME)/parfeap/feap               # set path for executable
+
+ FEAPRUN   = $(FEAPHOME)/parfeap/feap               # set path for executable
+
+ ARPACKLIB = $(FEAPHOME)/parfeap/arpack/arpacklib.a # local arpack library
+#LAPACKLIB = $(FEAPHOME)/parfeap/lapack/lapacklib.a # local lapack library
+#BLASLIB   = $(FEAPHOME)/parfeap/blas/blaslib.a     # local blas   library
+
+include $(FEAPHOME)/makefile.in
+
+include ${PETSC_DIR}/bmake/common/base
+PETSC_INCLUDE := $(PETSC_INCLUDE) -I$(FINCLUDE)    # N.B. := avoids recursion
+
+OBJECTS = $(FEAPHOME)/main/feap80.o \
+	adomnam.o arfeaps.o aropk.o aropm.o pminvsqr.o parkv.o parmv.o \
+	filnam.o gamma1.o palloc.o parfeaps.o paropk.o paropm.o cleanr.o \
+	pbases.o pcompress.o pcontr.o pddot.o pdelfl.o pdgetv0.o \
+	pdnrm2.o pdomain.o pdsaitr.o pdsaup2.o pdsaupd.o pdseupd.o \
+	petscmi.o petscsr.o pform.o plstop.o pmacio.o pmacr1.o pmacr3.o \
+	pmacr7.o pmacr.o p_metis.o pmodal.o pmodify.o pmodin.o pparlo.o \
+	pplotf.o premas.o prtdis.o prtstr.o prwext.o psetb.o fppsop.o \
+	psproja.o psprojb.o pstart.o psubsp.o scalev.o smodify.o \
+	uasble.o uasblem.o upremas.o usolve.o upc.o \
+	umacr4.o umacr5.o umacr6.o umacr8.o umacr9.o pextnd.o bserchi.o
+
+feap: $(OBJECTS) $(ARFEAP)
+	ranlib $(ARFEAP)
+	-${FLINKER} ${FFLAGS} -o feap $(OBJECTS) \
+	$(ARPACKLIB) $(ARFEAP) \
+	${PETSC_FORTRAN_LIB} ${PETSC_LIB} $(LDOPTIONS)
+
+nfeaprun:
+	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type cg -pc_type jacobi -log_summary -on_error_attach_debugger -options_left 
+
+feaprun:
+	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type cg -ksp_monitor -pc_type jacobi -log_summary -on_error_attach_debugger -ksp_view -options_left 
+
+feaprun-gmres:
+	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type gmres -ksp_monitor -pc_type bjacobi -log_summary -on_error_attach_debugger
+
+feaprun1:
+	-@${MPIRUN} -s all -np 1 $(FEAPRUN) -ksp_type cg -pc_type jacobi -log_summary -on_error_attach_debugger
+
+feaprun-mg:
+	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type cg -ksp_monitor -log_summary -out_verbose 2 -pc_type prometheus -pc_mg_type multiplicative -pc_mg_cycles 1  -prometheus_preduce_base 500 -prometheus_top_grid_limit 2500 -aggmg_avoid_resmooth -aggmg_smooths 1  -prometheus_repartition -options_left
+
+#	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type cg -ksp_monitor -log_summary -out_verbose 2 -pc_type prometheus -pc_mg_type multiplicative -pc_mg_cycles 1  -prometheus_preduce_base 500 -prometheus_top_grid_limit 2500 -aggmg_avoid_resmooth -aggmg_smooths 1 -mg_levels_pc_type asm -prometheus_nodes_per_block 1200 -prometheus_repartition -options_left
+
+feaprun-mg1:
+	-@${MPIRUN} -s all -np 1   $(FEAPRUN) -ksp_type cg -ksp_rtol 1.e-8 -ksp_atol 1.e-9 -ksp_monitor -log_summary -out_verbose 2 -pc_type prometheus -pc_mg_type multiplicative -pc_mg_cycles 1  -prometheus_preduce_base 500 -prometheus_top_grid_limit 2500 -aggmg_avoid_resmooth -aggmg_smooths 1 -prometheus_repartition -on_error_attach_debugger -options_left
+
+
+feaprun-sp:
+	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type preonly -ksp_monitor -pc_type cholesky -mat_type mpisbaijspooles -log_summary -on_error_attach_debugger -mat_spooles_symmetryflag 0  -options_left
+
+feaprun-hypre-boomer:
+	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type cg -ksp_monitor -pc_type hypre -pc_hypre_type boomeramg   -log_summary  -pc_hypre_boomeramg_strong_threshold 0.25 -pc_hypre_boomeramg_relax_type_all symmetric-SOR/Jacobi   -ksp_view -options_left 
+
+feaprun-hypre-boomer-boomer:
+	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type richardson -ksp_monitor -pc_type hypre -pc_hypre_type boomeramg   -log_summary  -pc_hypre_boomeramg_strong_threshold 0.25 -pc_hypre_boomeramg_relax_type_all symmetric-SOR/Jacobi -pc_hypre_boomeramg_grid_sweeps_all 1 -ksp_view  -options_left
+
+feaprun-hypre-euclid:
+	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type cg -ksp_monitor -pc_type hypre -pc_hypre_type euclid -log_summary -ksp_view -options_left
+
+feaprun-hypre-parasails:
+	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type cg -ksp_monitor -pc_type hypre -pc_hypre_type parasails -log_summary -ksp_view -options_left
+
+feaprun-hypre-pilut:
+	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_type cg -ksp_monitor -pc_type hypre -pc_hypre_type pilut -log_summary  -ksp_view -options_left
+
+
+.f.o:
+	$(FF) -c $(FFOPTFLAG) -I$(FINCLUDE) $*.f -o $*.o
+#
+#.c.o:
+#	$(CC) -c $(CCOPTFLAG)  $*.c -o $*.o
+
+clean:
+	rcsclean -q
+	rm -f *.o
+	(cd arpack; make clean)
+	(cd lapack; make clean)
+	(cd blas; make clean)
+	(cd unix; make clean)
+	(cd windows; make clean)
+
+checkout:
+	co -q makefile
+	co -q RCS/*.F,v
+	co -q RCS/*.h,v
+	co -q arpack/makefile
+	(cd arpack; make checkout)
+	co -q lapack/makefile
+	(cd lapack; make checkout)
+	co -q blas/makefile
+	(cd blas; make checkout)
+	co -q unix/makefile
+	(cd unix; make checkout)
+	co -q windows/makefile
+	(cd windows; make checkout)
+
+rcs:
+	mkdir RCS
+	ci -t-"" *.F
+	ci -t-"" *.h
+	(cd arpack; make rcs)
+	(cd lapack; make rcs)
+	(cd blas; make rcs)
+	(cd unix; make rcs)
+	(cd windows; make rcs)
+	ci -t-"" makefile
+
+#	-@${MPIRUN} -s all -np $(NPROC) $(FEAPRUN) -ksp_rtol 1.e-8 -ksp_atol 1.e-9 -ksp_type cg -pc_type bjacobi -ksp_monitor -ksp_view -log_summary
+
+# Convert .f files to Fortran-style headers, and .F files to C-style
+fixheaders:
+	../maintain/fheaders *.f
+	../maintain/cheaders *.F 

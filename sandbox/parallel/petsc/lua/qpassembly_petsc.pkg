@@ -1,0 +1,70 @@
+$#include "mesh.h"
+$#include "qpassembly_petsc.h"
+$#include "qpassembly_part_petsc.h"
+$#include "mesh_partition_util.h"
+
+// -- Functions related to Mesh
+
+Mat Mesh_assemble_dR_petsc(Mesh* mesh, double cx, double cv, double ca,
+                           int mat_type_code, int is_reduced);
+Mat Mesh_assemble_dR_petsc(Mesh* mesh, double cxr, double cxi,
+                                       double cvr, double cvi,
+                                       double car, double cai,
+                           int mat_type_code, int is_reduced);
+Vec Mesh_assemble_R_petsc(Mesh* mesh, int is_reduced);
+
+$ Mat Mesh_assemble_P_petsc1(Mesh* from, Mesh* to, int to_numnp, int* nemap, int mat_type, int is_reduced)
+$ {
+$     return Mesh_assemble_P_petsc(from,to,nemap,mat_type,is_reduced);
+$ }
+
+Mat Mesh_assemble_P_petsc1(Mesh* from, Mesh* to, int to_numnp, int nemap[to_numnp], int mat_type, int is_reduced);
+
+$[
+function Mesh:assemble_dR_petsc(cx, cv, ca, mattype, is_reduced)
+  cx = cx or 1
+  cv = cv or 0
+  ca = ca or 0
+  mattype = mattype or 0
+  is_reduced = is_reduced or 0
+  if mattype then
+    if     mattype == 'seqaij'   then mattype = 0
+    elseif mattype == 'mpiaij'   then mattype = 2
+    end
+  end
+
+  return Mesh_assemble_dR_petsc(self, cx, cv, ca, mattype, is_reduced)
+end
+
+function Mesh:assemble_R_petsc(is_reduced)
+  return Mesh_assemble_R_petsc(self,is_reduced)
+end
+$]
+
+
+// -- Functions related to Mesh_Partition
+Mat Mesh_Partition_assemble_dR_petsc(Mesh_Partition* mesh, double cx, double cv, double ca,
+                           int mat_type_code, int is_reduced);
+Mat Mesh_Partition_assemble_dR_petsc(Mesh_Partition* mesh, double cxr, double cxi,
+                                       double cvr, double cvi,
+                                       double car, double cai,
+                           int mat_type_code, int is_reduced);
+Vec Mesh_Partition_assemble_R_petsc(Mesh_Partition* mesh, int is_reduced);
+
+$ Mat Mesh_Partition_assemble_P_petsc1(Mesh_Partition* from, Mesh_Partition* to, int to_numnp, int* nemap, int mat_type, int is_reduced)
+$ {
+$     return Mesh_Partition_assemble_P_petsc(from,to,nemap,mat_type,is_reduced);
+$ }
+$
+$ Mat Mesh_Partition_assemble_P_petsc2(Mesh_Partition* from, Mesh_Partition* to, const char* fname, int mat_type, int is_reduced)
+$ {
+$     Mesh_Partition_Reader mpr;
+$     int* nemap  = mpr.read_partition_nemap(to,fname);
+$     Mat A = Mesh_Partition_assemble_P_petsc(from,to,nemap,mat_type,is_reduced);
+$     delete[] nemap;
+$     return A;
+$ }
+
+Mat Mesh_Partition_assemble_P_petsc1(Mesh_Partition* from, Mesh_Partition* to, int to_numnp, int nemap[to_numnp], int mat_type, int is_reduced);
+Mat Mesh_Partition_assemble_P_petsc2(Mesh_Partition* from, Mesh_Partition* to, const char* fname, int mat_type, int is_reduced);
+Mat MatRemoveZeros(Mat A, double atol);

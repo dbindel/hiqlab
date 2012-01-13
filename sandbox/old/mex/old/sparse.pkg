@@ -1,0 +1,28 @@
+/* HiQLab
+ * Copyright (c): Regents of the University of California
+ *
+ * $Id: sparse.pkg,v 1.2 2004/10/18 21:05:52 dbindel Exp $
+ */
+
+$#include "stubs.h"
+$#include "cscmatrix.h"
+$#include "pmlmode.h"
+
+void pml_mode_helper(m_Object Kshift, m_Object M,
+                     int n, int nev, int ncv,
+                     complex<double>* d, complex<double>* v);
+  //%output d(n), v(n,ncv)
+$[
+function [d,V] = pml_mode_2(Kshift, M, nev)
+
+[Mm, Mn] = size(M);
+[Km, Kn] = size(Kshift);
+if ~issparse(Kshift) | ~issparse(M) | Mm ~= Mn | Km ~= Kn | Km ~= Mm
+  error('M and K must be equal-sized square sparse matrices');
+end
+
+ncv = max(10,2*nev);
+[d,V] = pml_mode_helper(Kshift, M, size(M,1), nev, ncv);
+d = d(1:nev);
+V = V(:,1:nev);
+$]

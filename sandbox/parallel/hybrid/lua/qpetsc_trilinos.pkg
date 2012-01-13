@@ -1,0 +1,68 @@
+$#include "PetscOO.h"
+$#include "Petsc_Operator.h"
+
+class PetscOO {
+
+    PetscOO();
+    ~PetscOO(); 
+    int SetOperators(Mat A, Mat P, MatStructure flag);
+
+    /** Set PC type */
+    int SetPCType(PCType type);
+    int SetPCType(PCType type, Mesh* mesh);
+
+    /** Set option */
+    int SetOption(const std::string& iname, const std::string& value);
+
+   /** Solve the problem */
+   int Solve(Vec b, Vec x);
+   double GetResidualNorm();
+   int    GetIterationNumber();
+
+};
+
+
+$ int qPetscOOSetOperators(PetscOO* po, Mat A, Mat B, int sameflag)
+$ {
+$     MatStructure mat_structures[] = {
+$         SAME_PRECONDITIONER,
+$         SAME_NONZERO_PATTERN,
+$         DIFFERENT_NONZERO_PATTERN
+$     };
+$    return po->SetOperators(A, B, mat_structures[sameflag]);
+$ }
+
+int qPetscOOSetOperators(PetscOO* po, Mat A, Mat B, int sameflag);
+
+$[
+
+local meshtie1 = Mesh.tie;
+function Mesh:tie(tol)
+  tol = tol or meshtol
+  meshtie1(self,tol)
+end
+local setoperators1 = PetscOO.SetOperators;
+function PetscOO:SetOperators(A, B, sameflag)
+  local flag_lookup = {
+    ['SAME_PRECONDITIONER'] = 0,
+    ['SAME_NONZERO_PATTERN'] = 1,
+    ['DIFFERENT_NONZERO_PATTERN'] = 2
+  }
+  sameflag = sameflag or 'different nonzero pattern'
+  if flag_lookup[sameflag] then
+    qPetscOOSetOperators(self, A, B, flag_lookup[sameflag])
+  else
+    error('Unknown flag: ' .. sameflag)
+  end
+end
+
+$]
+
+class Petsc_Operator: public Epetra_Operator {
+      
+    Petsc_Operator(KSP ksp, Epetra_CrsMatrix* B);
+    ~Petsc_Operator();
+    void SetMesh(Mesh* m);
+    void SetFromOptions();
+};
+

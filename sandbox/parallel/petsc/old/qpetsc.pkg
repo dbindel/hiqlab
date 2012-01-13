@@ -1,0 +1,217 @@
+
+$#include "petscvec.h"
+$#include "petscmat.h"
+$#include "petscksp.h"
+$#include "mesh.h"
+$#include "qpetsc.h"
+
+// ---- Constant bindings ----
+
+enum { PETSC_FALSE, PETSC_TRUE };
+#define PETSC_NULL      0
+#define PETSC_DECIDE    -1
+#define PETSC_DEFAULT   -2
+#define PETSC_IGNORE    PETSC_NULL
+#define PETSC_DETERMINE PETSC_DECIDE
+
+
+// ---- Retrieve constants and globals ----
+
+PetscViewer get_PETSC_VIEWER_STDOUT_WORLD();
+
+$[
+PETSC_VIEWER_STDOUT_WORLD = get_PETSC_VIEWER_STDOUT_WORLD();
+$]
+
+
+// ---- Return error message ----
+
+const char* qPetscErrorMessage(int errnum);
+
+
+// ---- Bindings for PetscViewer ----
+
+PetscViewer qPetscViewerBinaryOpen(const char* name, int type); 
+PetscViewer qPetscViewerASCIIOpen(const char* name);
+int qPetscViewerSetFormat(PetscViewer viewer, int format);
+int PetscViewerFlush(PetscViewer viewer);
+int PetscViewerDestroy(PetscViewer viewer);
+
+
+// ---- Bindings for Vec ----
+
+Vec qVecCreate();
+int VecSetSizes(Vec x, int n, int N);
+int VecDestroy(Vec x);
+int VecGetSize(Vec x, int* size = 0);
+int VecView(Vec x, PetscViewer viewer);
+int qVecNorm(Vec x, int type, double* val = 0);
+int VecSetFromOptions(Vec x);
+Vec qVecLoad(PetscViewer viewer, int outtype);
+
+
+// ---- Bindings for Mat ----
+
+int MatDestroy(Mat m);
+int MatGetSize(Mat mat, int* m = 0, int* n = 0);
+int MatView(Mat m, PetscViewer viewer);
+Mat qMatLoad(PetscViewer viewer, int outtype);
+
+
+// ---- Bindings for KSP ----
+
+KSP qKSPCreate();
+int qKSPSetOperators(KSP ksp, Mat A, Mat B, int sameflag);
+int KSPSetTolerances(KSP ksp, double rtol, double atol, double dtol, int maxit);
+int KSPSetFromOptions(KSP ksp);
+int KSPSolve(KSP ksp, Vec b, Vec x);
+int KSPView(KSP ksp, PetscViewer viewer);
+int KSPGetResidualNorm(KSP ksp, double* rnorm = 0);
+int qKSPTrueResidualNorm(KSP ksp, int type = 2, double* rnorm = 0);
+int KSPGetIterationNumber(KSP ksp, int* its = 0);
+int KSPDestroy(KSP ksp);
+PC  qKSPGetPC(KSP ksp);
+
+
+// ---- Bindings for PCs ----
+
+int PCSetCoordinatesFromMesh(PC pc, Mesh* mesh);
+
+
+
+// ---- Binding wrappers ----
+
+$[
+--
+-- Replace the function by a wrapper that removes the error code
+--
+function petsc_wrap(fname, fname2)
+  local f = _G[fname]
+  _G[fname] = nil
+  _G[fname2 or fname] = function(...)
+    local result = {f(unpack(arg))}
+    if result[1] ~= 0 then
+      error(qPetscErrorMessage(errnum))
+    else
+      table.remove(result, 1)
+    end
+    return unpack(result)
+  end
+end
+
+
+---- Bindings for viewer ----
+
+PetscViewerASCIIOpen = qPetscViewerASCIIOpen
+petsc_wrap('qPetscViewerSetFormat')
+petsc_wrap('PetscViewerFlush')
+petsc_wrap('PetscViewerDestroy')
+
+
+function PetscViewerBinaryOpen(name, type)
+  local mode_table = {
+    ['FILE_MODE_WRITE'] = 0,
+    ['FILE_MODE_READ']  = 1
+  }
+  if mode_table[type] then
+    return qPetscViewerBinaryOpen(name, mode_table[type])
+  else
+    error('Could not open with mode ' .. type)
+  end
+end
+
+
+function PetscViewerSetFormat(viewer, format)
+  local format_table = {
+    ['default']     = 0,
+    ['matlab']      = 1,
+    ['dense']       = 2,
+    ['impl']        = 3,
+    ['info']        = 4,
+    ['info_detail'] = 5,
+    ['common']      = 6,
+    ['index']       = 7,
+    ['symmodu']     = 8
+  }
+  if format_table[format] then
+    qPetscViewerSetFormat(viewer, format_table[format])
+  else
+    error('Cannot identify viewer format ' .. format)
+  end
+end
+
+
+---- Bindings for Vec ----
+
+petsc_wrap('VecSetSizes')
+petsc_wrap('VecDestroy')
+petsc_wrap('VecGetSize')
+petsc_wrap('VecView')
+petsc_wrap('qVecNorm', 'VecNorm')
+petsc_wrap('VecSetFromOptions')
+VecCreate = qVecCreate;
+petsc_destroy_vec = VecDestroy
+
+function VecLoad(viewer, outtype)
+  local vec_types = { ['seq'] = 0, ['mpi'] = 1 }
+  if vec_types[outtype] then
+    return qVecLoad(viewer, vec_types[outtype])
+  else
+    error('Unknown vector type ' .. outtype)
+  end
+end
+
+
+---- Bindings for Mat ----
+
+petsc_wrap('MatDestroy')
+petsc_wrap('MatGetSize')
+petsc_wrap('MatView')
+petsc_destroy_mat = MatDestroy
+
+function MatLoad(viewer, outtype)
+  local mat_types = {
+    ['seqaij']   = 0, ['mpiaij']   = 1,
+    ['seqbaij']  = 2, ['mpibaij']  = 3,
+    ['seqsbaij'] = 4, ['mpisbaij'] = 5,
+    ['seqbdiag'] = 6, ['mpibdiag'] = 7,
+    ['mpirowbs'] = 8,
+    ['seqdense'] = 9, ['mpidense'] = 10
+  }
+  if mat_types[outtype] then
+    return qMatLoad(viewer, mat_types[outtype])
+  else
+    error('Unknown matrix type ' .. outtype)
+  end
+end
+
+
+---- Bindings for KSP ----
+
+KSPCreate = qKSPCreate
+petsc_wrap('qKSPSetOperators')
+petsc_wrap('KSPSetTolerances')
+petsc_wrap('KSPSetFromOptions')
+petsc_wrap('KSPSolve')
+petsc_wrap('KSPView')
+petsc_wrap('KSPGetResidualNorm')
+petsc_wrap('qKSPTrueResidualNorm', 'KSPTrueResidualNorm')
+petsc_wrap('KSPGetIterationNumber')
+petsc_wrap('KSPDestroy')
+KSPGetPC = qKSPGetPC
+
+function KSPSetOperators(ksp, A, B, sameflag)
+  local flag_lookup = {
+    ['SAME_PRECONDITIONER'] = 0,
+    ['SAME_NONZERO_PATTERN'] = 1,
+    ['DIFFERENT_NONZERO_PATTERN'] = 2
+  }
+  sameflag = sameflag or 'different nonzero pattern'
+  if flag_lookup[sameflag] then
+    qKSPSetOperators(ksp, A, B, flag_lookup[sameflag])
+  else
+    error('Unknown flag: ' .. sameflag)
+  end
+end
+
+$]

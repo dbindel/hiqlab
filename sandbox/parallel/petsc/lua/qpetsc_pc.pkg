@@ -1,0 +1,143 @@
+$#include <string>
+$#include <iostream>
+$#include "qpetsc_pc.h"
+$#include "qpetsc_pc_luastubs.h"
+$#include "mesh.h"
+$#include "qpetscmg.h"
+$#include "petscmg.h"
+
+// ---- Bindings for PCs ----
+
+$ int qPetscOptionsSetValue(const std::string& iname, const std::string& values)
+$ {
+$     return PetscOptionsSetValue(iname.c_str(), values.c_str());
+$ }
+
+int PCSetFromOptions(PC pc);
+int PCView(PC pc, PetscViewer viewer);
+int PCSetCoordinatesFromMesh(PC pc, Mesh* mesh);
+int PCSetType(PC pc, const char* name);
+int PCApply(PC pc, Vec x, Vec y);
+
+
+// ---- Bindings for HYPRE ----
+
+$ int qPCHYPRESetType(PC pc, const char* name)
+$ {
+$ #ifdef PETSC_HAVE_HYPRE
+$     return PCHYPRESetType(pc,name);
+$ #else
+$     std::cout << "Must configure PETSc with HYPRE\n";
+$ #endif
+$ }
+
+int qPCHYPRESetType(PC pc, const char* name);
+int qPetscOptionsSetValue(const std::string& iname, const std::string& values);
+
+
+// ---- Bindings for MG ----
+
+$ int qPCMGSetLevels(PC pc, int levels)
+$ {
+$     return PCMGSetLevels(pc, levels, PETSC_NULL);
+$ }
+
+int qPCMGSetLevels(PC pc, int levels);
+int qPCMGSetType(PC pc, int form);
+int qPCMGSetCycleType(PC pc, int ctype);
+int PCMGSetInterpolation(PC pc, int n, Mat P);
+int PCMGSetOperator(PC pc, int n, Mat A);
+Mat PCMGGetOperator(PC pc, int igrid);
+int PCMGSetStationarySmoothers(PC pc, const char* name, double scale,
+                                int git, int lit, int ndown, int nup);
+int PCMGSetKrylovSmoothers(PC pc, const char* kspname, const char* pcname,
+                                int ndown, int nup, double scale, int restart, int git, int lit);
+int PCMGSetDirectCoarseSolve(PC pc, const char* name);
+int PCMGSetSmootherDiagonalMassPreconditioning(PC pc, Mat M, int type);
+
+
+// ---- Bindings for Kaczmarz ----
+
+int PCRegisterKaczmarz();
+int PCKaczmarzSetIterations(PC pc, int git, int lit);
+int PCKaczmarzSetOmega(PC pc, double omega);
+
+$[
+--
+-- Replace the function by a wrapper that removes the error code
+--
+function petsc_wrap(fname, fname2)
+  local f = _G[fname]
+  _G[fname] = nil
+  _G[fname2 or fname] = function(...)
+    local result = {f(unpack(arg))}
+    if result[1] ~= 0 then
+      error(qPetscErrorMessage(errnum))
+    else
+      table.remove(result, 1)
+    end
+    return unpack(result)
+  end
+end
+
+---- Bindings for PC ----
+petsc_wrap('PCSetType')
+petsc_wrap('PCSetFromOptions')
+petsc_wrap('PCView')
+petsc_wrap('PCApply')
+
+---- Bindings for HYPRE
+petsc_wrap('qPCHYPRESetType', 'PCHYPRESetType')
+petsc_wrap('qPetscOptionsSetValue','PetscOptionsSetValue')
+
+
+---- Bindings for MG
+petsc_wrap('qPCMGSetLevels', 'PCMGSetLevels')
+petsc_wrap('PCMGSetStationarySmoothers')
+petsc_wrap('PCMGSetDirectCoarseSolve')
+petsc_wrap('PCMGSetKrylovSmoothers')
+
+function PCMGSetType(pc, mgtype)
+  local mg_types = {
+    ['PC_MG_MULTIPLICATIVE']   = 0, ['PC_MG_ADDITIVE']   = 1,
+    ['PC_MG_FULL']  = 2, ['PC_MG_KASKADE']  = 3
+  }
+  if mg_types[mgtype] then
+    return qPCMGSetType(pc, mg_types[mgtype])
+  else
+    error('Unknown pcmg type ' .. outtype)
+  end
+end
+
+function PCMGSetCycleType(pc, ctype)
+  local cycle_types = {
+    ['PC_MG_CYCLE_V']   = 0, ['PC_MG_CYCLE_W']   = 1
+  }
+  if cycle_types[ctype] then
+    return qPCMGSetCycleType(pc, cycle_types[ctype])
+  else
+    error('Unknown pcmg cycle type ' .. outtype)
+  end
+end
+
+function PCMGSetInterpolates(pc, P)
+
+    local ierr,n
+    n = table.getn(P)
+    for i = 1,n do
+        ierr = PCMGSetInterpolation(pc,i,P[i])
+    end
+
+end
+
+function PCMGSetOperators(pc, A)
+
+    local ierr,n
+    n = table.getn(A)
+    for i = 1,n do
+        ierr = PCMGSetOperator(pc,i,A[i])
+    end
+
+end
+
+$]
