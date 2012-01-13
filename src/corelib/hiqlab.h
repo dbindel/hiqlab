@@ -17,7 +17,7 @@
   "HiQlab 0.4\n" \
   "Copyright   : Regents of the University of California\n" \
   "Build system: i386-apple-darwin11.2.0\n" \
-  "Build date  : Fri Dec 16 15:43:11 EST 2011\n" \
+  "Build date  : Fri Jan 13 16:50:39 EST 2012\n" \
   "Bug reports : dbindel@cs.berkeley.edu\n"
 
 #endif /* HIQLAB_H */

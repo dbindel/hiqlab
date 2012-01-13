@@ -1,6 +1,6 @@
 CC=gcc \
 CXX=g++ \
-F77=gfortran-mp-4.4 \
+F77=gfortran \
 ./configure \
   --with-blas="-Wl,-framework -Wl,vecLib" 
 
