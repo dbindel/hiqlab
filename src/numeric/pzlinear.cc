@@ -2,6 +2,9 @@
  * Copyright (c): Regents of the University of California
  */
 
+#include <cmath>
+#include <memory>
+
 #include "pmlmode.h"
 #include "pzlinear.h"
 #include "mesh_csc_dR.h"
@@ -9,8 +12,6 @@
 #include "coordmatrix.h"
 #include "bcoordmatrix.h"
 #include "qmatrix.h"
-
-#include <cmath>
 
 using std::auto_ptr;
 
