@@ -8,7 +8,7 @@
 
 #include "matexpr-ast.h"
 #include <math.h>
-
+#include <stdlib.h>
 
 double ast2double(ASTNode* node, bool& is_const)
 {

@@ -8,6 +8,7 @@
 
 #include "matexpr-ast2ir.h"
 #include <cassert>
+#include <cstdio>
 
 #define ME IRWriter
 

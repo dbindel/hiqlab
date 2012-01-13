@@ -1,6 +1,6 @@
 \documentclass[12pt]{article}
 \usepackage{amsmath}
-\usepackage{fancyheadings}
+\usepackage{fancyhdr}
 
 \setlength{\oddsidemargin}{0.0in}
 \setlength{\textwidth}{6.5in}
@@ -17,12 +17,13 @@
 
 \pagestyle{fancy}
 
-\headrulewidth 1.5pt
-\footrulewidth 1.5pt
+\renewcommand{\headrulewidth}{1.5pt}
+\renewcommand{\footrulewidth}{1.5pt}
 \chead{\matexpr}
 \lhead{}
 \rhead{}
 \cfoot{\thepage}
+
 \begin{document}
 
 \maketitle
